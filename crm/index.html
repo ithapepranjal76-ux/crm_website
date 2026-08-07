@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexaCRM — Sign in</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="login-shell">
+  <div class="login-visual">
+    <div class="brand"><span class="dot"></span> NexaCRM</div>
+    <div class="pitch">
+      <h1>Every lead, call and invoice in one place.</h1>
+      <p>Track a customer from first call to final payment — follow-ups, quotations, tasks and reports, all in a single dashboard your whole team can share.</p>
+      <div class="login-flow">
+        <span>Lead</span><span>Follow-up</span><span>Qualified</span><span>Client</span><span>Task</span><span>Invoice</span><span>Paid</span>
+      </div>
+    </div>
+    <footer>© 2026 NexaCRM · Internal business tool</footer>
+  </div>
+
+  <div class="login-form-wrap">
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <span class="sub">Sign in to your CRM workspace</span>
+
+      <div class="login-error" id="loginError">Invalid email or password.</div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Work email</label>
+          <input type="email" id="email" placeholder="you@company.com" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      </form>
+
+      <div class="demo-accounts">
+        <b>Demo accounts (click to autofill)</b>
+        <div id="demoList" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-host"></div>
+
+<script src="js/data.js"></script>
+<script>
+  seedIfNeeded();
+
+  // If already logged in, go straight to dashboard
+  if (currentUser()) window.location.href = 'dashboard.html';
+
+  const users = DB.get(DB_KEYS.users);
+  const demoList = document.getElementById('demoList');
+  users.forEach(u => {
+    const row = document.createElement('div');
+    row.innerHTML = `<code style="cursor:pointer" data-mail="${u.email}" data-pass="${u.password}">${u.role}: ${u.email} / ${u.password}</code>`;
+    demoList.appendChild(row);
+  });
+  demoList.addEventListener('click', e => {
+    const el = e.target.closest('code');
+    if (!el) return;
+    document.getElementById('email').value = el.dataset.mail;
+    document.getElementById('password').value = el.dataset.pass;
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const pass = document.getElementById('password').value;
+    const user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
+    const errBox = document.getElementById('loginError');
+    if (!user) {
+      errBox.style.display = 'block';
+      return;
+    }
+    errBox.style.display = 'none';
+    setCurrentUser({ id: user.id, name: user.name, role: user.role, email: user.email });
+    window.location.href = 'dashboard.html';
+  });
+</script>
+</body>
+</html>
