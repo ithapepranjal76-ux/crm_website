@@ -21,7 +21,11 @@
     </div>
 
     <div class="nav-group-label">Sales Pipeline</div>
-    <div class="nav-item" data-section="leads" data-roles="Admin,Sales">
+    <div class="nav-item" data-section="pipeline" data-roles="Admin,Sales,Employee">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v3H4zM7 11h10v3H7zM10 18h4v3h-4z"/></svg>
+      Pipeline
+    </div>
+    <div class="nav-item" data-section="leads" data-roles="Admin,Sales,Employee">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
       Leads &amp; Follow-ups
     </div>
@@ -51,6 +55,10 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       Notifications
     </div>
+    <div class="nav-item" data-section="callhistory" data-roles="Admin,Sales,Employee,Accountant">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
+      Call History
+    </div>
     <div class="nav-item" data-section="reports" data-roles="Admin,Accountant">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
       Reports
@@ -58,6 +66,12 @@
     <div class="nav-item" data-section="users" data-roles="Admin">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Team &amp; Roles
+    </div>
+
+    <div class="nav-group-label">Account</div>
+    <div class="nav-item" data-section="settings" data-roles="Admin,Sales,Employee,Accountant">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
     </div>
 
     <div class="sidebar-footer">
@@ -100,7 +114,9 @@
 
       <!-- ============ DASHBOARD ============ -->
       <section class="section active" id="sec-dashboard">
+        <div class="dashboard-hero" id="dashboardHero"></div>
         <div class="stat-grid" id="statGrid"></div>
+        <div class="role-workspace" id="roleWorkspace"></div>
         <div class="grid-2">
           <div class="card">
             <div class="card-head">
@@ -121,6 +137,16 @@
           </div>
           <div class="table-wrap" id="dashCallList"></div>
         </div>
+      </section>
+
+      <!-- ============ PIPELINE (KANBAN) ============ -->
+      <section class="section" id="sec-pipeline">
+        <div class="page-head">
+          <div><h2>Sales Pipeline</h2><div class="sub">Drag opportunities through each stage and keep your team focused on the next best action.</div></div>
+          <button class="btn btn-primary" id="addLeadFromPipelineBtn">+ Add Lead</button>
+        </div>
+        <div class="pipeline-overview" id="pipelineOverview"></div>
+        <div class="kanban-board" id="kanbanBoard"></div>
       </section>
 
       <!-- ============ LEADS ============ -->
@@ -193,20 +219,25 @@
 
       <!-- ============ REPORTS ============ -->
       <section class="section" id="sec-reports">
-        <div class="page-head"><div><h2>Dashboard &amp; Reports</h2><div class="sub">Pipeline health and revenue at a glance.</div></div></div>
+        <div class="page-head"><div><h2>Performance Reports</h2><div class="sub">A visual view of pipeline health, conversions and revenue.</div></div><span class="report-period">All time · Live data</span></div>
+        <div class="report-kpis" id="reportKpis"></div>
         <div class="grid-2">
           <div class="card">
-            <div class="card-head"><h3>Lead funnel</h3></div>
+            <div class="card-head"><div><h3>Lead funnel</h3><span class="card-caption">Where your opportunities are today</span></div></div>
             <div class="card-body" id="funnelChart"></div>
           </div>
           <div class="card">
-            <div class="card-head"><h3>Revenue — invoiced vs collected</h3></div>
+            <div class="card-head"><div><h3>Revenue overview</h3><span class="card-caption">Invoiced versus amount collected</span></div></div>
             <div class="card-body" id="revenueChart"></div>
           </div>
         </div>
         <div class="card" style="margin-top:20px;">
-          <div class="card-head"><h3>Team performance</h3></div>
-          <div class="table-wrap" id="teamPerfTable"></div>
+          <div class="card-head"><div><h3>Monthly sales trend</h3><span class="card-caption">Collections received over the last six months</span></div></div>
+          <div class="card-body" id="salesTrendChart"></div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+          <div class="card-head"><div><h3>Team performance</h3><span class="card-caption">Open leads, converted customers and completed work</span></div></div>
+          <div class="card-body" id="teamPerfTable"></div>
         </div>
       </section>
 
@@ -217,6 +248,91 @@
           <button class="btn btn-primary" id="addUserBtn">+ Add Team Member</button>
         </div>
         <div class="card"><div class="table-wrap" id="userTable"></div></div>
+      </section>
+
+      <!-- ============ CALL HISTORY ============ -->
+      <section class="section" id="sec-callhistory">
+        <div class="page-head">
+          <div><h2>Call History</h2><div class="sub">Every call made from the CRM — who called, which number, when and for how long.</div></div>
+        </div>
+        <div class="stat-grid" id="callStatGrid" style="grid-template-columns:repeat(3,1fr);"></div>
+        <div class="filter-bar"><input type="search" id="callSearch" placeholder="Search by name, number or rep…"></div>
+        <div class="card"><div class="table-wrap" id="callHistoryTable"></div></div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section class="section" id="sec-settings">
+        <div class="page-head">
+          <div><h2>Settings</h2><div class="sub">Your profile, reminder preferences and app data.</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h3>My Profile</h3></div>
+            <div class="card-body">
+              <div class="sidebar-user" style="margin-bottom:16px;">
+                <div class="avatar" id="setAvatar">?</div>
+                <div class="who">
+                  <div class="n" id="setName">—</div>
+                  <div class="r" id="setEmailRole">—</div>
+                </div>
+              </div>
+              <p class="small-muted">To change your name, email or password, ask an Admin to update it from Team &amp; Roles.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>Follow-up Reminders</h3></div>
+            <div class="card-body">
+              <div class="field">
+                <label>Remind me this many days before a follow-up is due</label>
+                <input type="number" id="setReminderDays" min="0" max="14">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <input type="checkbox" id="setNotifyOverdue" style="width:auto;">
+                  Also flag overdue items in red on the dashboard
+                </label>
+              </div>
+              <button class="btn btn-primary btn-sm" id="saveSettingsBtn" style="margin-top:14px;">Save Preferences</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:20px;">
+          <div class="card-head"><h3>Company profile</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="field"><label>Company name</label><input type="text" id="setCompanyName" placeholder="Your company name"></div>
+              <div class="field"><label>Business email</label><input type="email" id="setCompanyEmail" placeholder="hello@company.com"></div>
+            </div>
+            <div class="form-row" style="align-items:end;">
+              <div class="field" style="margin-bottom:0;"><label>Business phone</label><input type="tel" id="setCompanyPhone" placeholder="Contact number"></div>
+              <div class="field" style="margin-bottom:0;"><label>Currency</label><select id="setCurrency"><option value="INR">INR (₹)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option></select></div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="saveCompanyBtn" style="margin-top:14px;">Save Company Profile</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:20px;">
+          <div class="card-head"><h3>Data</h3></div>
+          <div class="card-body">
+            <p class="small-muted" style="margin-bottom:14px;">This demo stores everything in your browser (localStorage) — nothing leaves your device.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" id="exportDataBtn">⬇ Export all data (JSON)</button>
+              <button class="btn btn-outline btn-sm" id="resetDataBtn" style="color:var(--red);border-color:var(--red);">⟲ Reset demo data</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:20px;">
+          <div class="card-head"><h3>About</h3></div>
+          <div class="card-body">
+            <div class="kv"><span class="k">App</span><span class="v">NexaCRM</span></div>
+            <div class="kv"><span class="k">Version</span><span class="v">1.1.0 (demo)</span></div>
+            <div class="kv"><span class="k">Storage</span><span class="v">Browser localStorage</span></div>
+          </div>
+        </div>
       </section>
 
     </div>
@@ -234,10 +350,19 @@
         <input type="hidden" id="leadId">
         <div class="form-row">
           <div class="field"><label>Full name *</label><input type="text" id="leadName" required></div>
-          <div class="field"><label>Phone *</label><input type="tel" id="leadPhone" required></div>
+          <div class="field">
+            <label>Phone *</label>
+            <input type="tel" id="leadPhone" required maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10-digit mobile number">
+            <small class="small-muted">Exactly 10 digits, no +91 / spaces / dashes</small>
+            <div class="field-error" id="leadPhoneErr">Enter a valid 10-digit phone number.</div>
+          </div>
         </div>
         <div class="form-row">
-          <div class="field"><label>Email</label><input type="email" id="leadEmail"></div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="leadEmail" placeholder="name@company.com">
+            <div class="field-error" id="leadEmailErr">Enter a valid email address (must contain @).</div>
+          </div>
           <div class="field"><label>Company</label><input type="text" id="leadCompany"></div>
         </div>
         <div class="form-row">
@@ -245,6 +370,14 @@
             <select id="leadSource"><option>Website</option><option>Referral</option><option>Cold Call</option><option>Social Media</option><option>Walk-in</option><option>Other</option></select>
           </div>
           <div class="field"><label>Assigned to</label><select id="leadAssignedTo"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Lead Score (0–100)</label>
+            <input type="number" id="leadScore" min="0" max="100" step="5">
+            <small class="small-muted">Auto-suggested from stage — feel free to override.</small>
+          </div>
+          <div class="field"><label>&nbsp;</label></div>
         </div>
         <div class="field"><label>Notes</label><textarea id="leadNotes" placeholder="What do they need?"></textarea></div>
       </form>
@@ -260,22 +393,24 @@
     <div class="modal-body">
       <div class="grid-2">
         <div>
+          <div class="contact-actions" id="leadContactActions"></div>
           <div class="kv"><span class="k">Phone</span><span class="v" id="ldPhone"></span></div>
           <div class="kv"><span class="k">Email</span><span class="v" id="ldEmail"></span></div>
           <div class="kv"><span class="k">Company</span><span class="v" id="ldCompany"></span></div>
           <div class="kv"><span class="k">Source</span><span class="v" id="ldSource"></span></div>
           <div class="kv"><span class="k">Assigned to</span><span class="v" id="ldAssigned"></span></div>
           <div class="kv"><span class="k">Status</span><span class="v" id="ldStatus"></span></div>
+          <div class="kv"><span class="k">Lead Score</span><span class="v" id="ldScore"></span></div>
           <div class="divider"></div>
-          <label style="font-size:13px;font-weight:600;color:var(--slate-700);">Add follow-up note</label>
+          <label style="font-size:13px;font-weight:600;color:var(--slate-700);">Add note / follow-up</label>
           <textarea id="fuNote" placeholder="Call summary, next steps…" style="margin-top:6px;width:100%;padding:11px 13px;border:1px solid var(--slate-300);border-radius:8px;min-height:70px;font-family:inherit;"></textarea>
           <div class="form-row" style="margin-top:10px;">
             <div class="field" style="margin-bottom:0;"><label>Next follow-up date</label><input type="date" id="fuNextDate"></div>
             <div class="field" style="margin-bottom:0;"><label>Update status</label>
-              <select id="fuStatus"><option>New</option><option>Contacted</option><option>Qualified</option><option>Lost</option></select>
+              <select id="fuStatus"><option>New</option><option>Contacted</option><option>Follow-up</option><option>Qualified</option><option>Lost</option></select>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm" style="margin-top:12px;" id="saveFollowUpBtn">Save Follow-up</button>
+          <button class="btn btn-outline btn-sm" style="margin-top:12px;" id="saveFollowUpBtn">Save Note &amp; Follow-up</button>
         </div>
         <div>
           <label style="font-size:13px;font-weight:600;color:var(--slate-700);">Follow-up history</label>
@@ -311,10 +446,19 @@
       <form id="clientForm">
         <div class="form-row">
           <div class="field"><label>Full name *</label><input type="text" id="clientName" required></div>
-          <div class="field"><label>Phone *</label><input type="tel" id="clientPhone" required></div>
+          <div class="field">
+            <label>Phone *</label>
+            <input type="tel" id="clientPhone" required maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10-digit mobile number">
+            <small class="small-muted">Exactly 10 digits, no +91 / spaces / dashes</small>
+            <div class="field-error" id="clientPhoneErr">Enter a valid 10-digit phone number.</div>
+          </div>
         </div>
         <div class="form-row">
-          <div class="field"><label>Email</label><input type="email" id="clientEmail"></div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="clientEmail" placeholder="name@company.com">
+            <div class="field-error" id="clientEmailErr">Enter a valid email address (must contain @).</div>
+          </div>
           <div class="field"><label>Company</label><input type="text" id="clientCompany"></div>
         </div>
         <div class="field"><label>Address</label><textarea id="clientAddress"></textarea></div>
@@ -331,6 +475,7 @@
     <div class="modal-body">
       <div class="grid-2">
         <div>
+          <div class="contact-actions" id="clientContactActions"></div>
           <div class="kv"><span class="k">Phone</span><span class="v" id="cdPhone"></span></div>
           <div class="kv"><span class="k">Email</span><span class="v" id="cdEmail"></span></div>
           <div class="kv"><span class="k">Company</span><span class="v" id="cdCompany"></span></div>
@@ -458,7 +603,12 @@
     <div class="modal-head"><h3>Start a Call</h3><button class="modal-close" data-close>&times;</button></div>
     <div class="modal-body">
       <div class="field"><label>Name (optional)</label><input type="text" id="ncName" placeholder="e.g. Walk-in enquiry"></div>
-      <div class="field"><label>Phone number *</label><input type="tel" id="ncPhone" placeholder="+91…"></div>
+      <div class="field">
+        <label>Phone number *</label>
+        <input type="tel" id="ncPhone" required maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10-digit mobile number">
+        <small class="small-muted">Exactly 10 digits, no +91 / spaces / dashes</small>
+        <div class="field-error" id="ncPhoneErr">Enter a valid 10-digit phone number.</div>
+      </div>
       <p class="hint">Calling an existing lead or client? Use the call button next to their name instead — it keeps the call linked to their record.</p>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-amber" id="ncStartBtn">Call Now</button></div>

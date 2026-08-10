@@ -15,6 +15,8 @@ const DB_KEYS = {
   invoices: 'crm_invoices',
   payments: 'crm_payments',
   notifications: 'crm_notifications',
+  callLogs: 'crm_call_logs',
+  settings: 'crm_settings',
   session: 'crm_session',
   seeded: 'crm_seeded_v1'
 };
@@ -77,15 +79,88 @@ function fmtDateTime(iso) {
   return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+const CURRENCY_SYMBOLS = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
+
 function fmtMoney(n) {
   n = Number(n) || 0;
-  return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  const cur = (getSettings().currency) || 'INR';
+  const symbol = CURRENCY_SYMBOLS[cur] || '₹';
+  return symbol + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+/* ---------------- "Today" used across the app ----------------
+   Everything that decides overdue/due-soon (notifications, calendar,
+   dashboard) reads through here instead of calling `new Date()`
+   directly. That way Settings → Preferences can offer a "simulate a
+   different today" control so the team can test follow-up/invoice/task
+   reminders on any date without touching their system clock. */
+function effectiveToday() {
+  const override = getSettings().debugToday;
+  if (override) {
+    const d = new Date(override + 'T12:00:00');
+    if (!isNaN(d)) return d;
+  }
+  return new Date();
 }
 
 function daysUntil(iso) {
   if (!iso) return null;
-  const diff = new Date(iso).setHours(0,0,0,0) - new Date().setHours(0,0,0,0);
+  const diff = new Date(iso).setHours(0,0,0,0) - effectiveToday().setHours(0,0,0,0);
   return Math.round(diff / 86400000);
+}
+
+/* ---------------- VALIDATION HELPERS ----------------
+   Used everywhere a phone/email is entered (lead form, client form, etc.)
+   so the rule stays the same across the whole app — change it here once
+   and every form picks it up. */
+
+// Only plain 10-digit Indian mobile numbers, e.g. 9876543210
+// (no +91, no spaces, no dashes, not 9 or 11+ digits).
+function isValidPhone10(value) {
+  return /^[0-9]{10}$/.test((value || '').trim());
+}
+
+// Strips everything except digits and cuts it to 10 characters —
+// handy for live-formatting an input as the user types.
+function sanitizePhoneInput(value) {
+  return (value || '').replace(/\D/g, '').slice(0, 10);
+}
+
+// Basic but solid "name@domain.tld" check — requires an @ and a dot
+// after it, rejects spaces.
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
+}
+
+/* ---------------- SETTINGS (per-browser preferences) ---------------- */
+const DEFAULT_SETTINGS = {
+  reminderDays: 1,
+  flagOverdue: true,
+  currency: 'INR',
+  companyName: 'NexaCRM',
+  companyEmail: '',
+  companyPhone: '',
+  notifyLead: true,
+  notifyFollowup: true,
+  notifyTask: true,
+  notifyDeal: true,
+  debugToday: null   // yyyy-mm-dd override, used by effectiveToday()
+};
+
+function getSettings() {
+  try {
+    const raw = localStorage.getItem(DB_KEYS.settings);
+    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : { ...DEFAULT_SETTINGS };
+  } catch (e) {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(patch) {
+  const current = getSettings();
+  const next = { ...current, ...patch };
+  localStorage.setItem(DB_KEYS.settings, JSON.stringify(next));
+  return next;
 }
 
 /* ---------------- SEED DATA (first run only) ---------------- */
@@ -114,18 +189,18 @@ function seedIfNeeded() {
   const leads = [
     {
       id: uid('lead'), name: 'Vikram Singh', phone: '+919876543210', email: 'vikram@brightretail.com',
-      company: 'Bright Retail Pvt Ltd', source: 'Website', status: 'New', assignedTo: salesUser,
+      company: 'Bright Retail Pvt Ltd', source: 'Website', status: 'New', score: 20, assignedTo: salesUser,
       notes: 'Interested in a new e-commerce website.', createdAt: nowISO(), followUps: []
     },
     {
       id: uid('lead'), name: 'Sunita Rao', phone: '+919812345678', email: 'sunita@raodesigns.in',
-      company: 'Rao Interior Designs', source: 'Referral', status: 'Contacted', assignedTo: salesUser,
+      company: 'Rao Interior Designs', source: 'Referral', status: 'Contacted', score: 40, assignedTo: salesUser,
       notes: 'Wants branding + Instagram management.', createdAt: nowISO(),
       followUps: [{ id: uid('fu'), date: nowISO(), note: 'Introductory call done, sending proposal.', nextFollowUpDate: new Date(Date.now() + 2*86400000).toISOString(), by: salesUser }]
     },
     {
       id: uid('lead'), name: 'Imran Khan', phone: '+919900112233', email: 'imran@khanlogistics.com',
-      company: 'Khan Logistics', source: 'Cold Call', status: 'Qualified', assignedTo: salesUser,
+      company: 'Khan Logistics', source: 'Cold Call', status: 'Qualified', score: 75, assignedTo: salesUser,
       notes: 'Budget confirmed, wants SEO retainer.', createdAt: nowISO(), followUps: []
     }
   ];
@@ -135,6 +210,7 @@ function seedIfNeeded() {
   DB.set(DB_KEYS.quotations, []);
   DB.set(DB_KEYS.invoices, []);
   DB.set(DB_KEYS.payments, []);
+  DB.set(DB_KEYS.callLogs, []);
 
   DB.set(DB_KEYS.notifications, [
     { id: uid('ntf'), message: 'Follow-up due with Sunita Rao', relatedType: 'lead', relatedId: leads[1].id, date: new Date(Date.now()+2*86400000).toISOString(), read: false }

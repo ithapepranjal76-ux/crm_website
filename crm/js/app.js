@@ -9,10 +9,13 @@ const CU = requireAuth();
 const PERMS = {
   Admin:       { leads:'full', clients:'full', tasks:'full', billing:'full', payments:'full', users:'full', reports:'full' },
   Sales:       { leads:'full', clients:'full', tasks:'full', billing:'full', payments:'view', users:'none', reports:'none' },
-  Employee:    { leads:'none', clients:'view', tasks:'own',  billing:'none', payments:'none', users:'none', reports:'none' },
+  Employee:    { leads:'full', clients:'view', tasks:'own',  billing:'none', payments:'none', users:'none', reports:'none' },
   Accountant:  { leads:'none', clients:'view', tasks:'view', billing:'full', payments:'full', users:'none', reports:'full' }
 };
 function perm(area) { return PERMS[CU.role][area]; }
+function localDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
 
 /* ================================================================
    BOOTSTRAP
@@ -31,14 +34,14 @@ document.getElementById('menuToggle').addEventListener('click', () => document.g
 document.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => goToSection(el.dataset.nav)));
 
 const SECTION_TITLES = {
-  dashboard:'Dashboard', leads:'Leads & Follow-ups', clients:'Clients', tasks:'Services & Tasks',
+  dashboard:'Dashboard', pipeline:'Lead Pipeline', leads:'Leads & Follow-ups', clients:'Clients', tasks:'Services & Tasks',
   quotations:'Quotations & Invoices', payments:'Payment Tracking', notifications:'Notifications & Reminders',
-  reports:'Dashboard & Reports', users:'Team & Roles'
+  callhistory:'Call History', reports:'Dashboard & Reports', users:'Team & Roles', settings:'Settings'
 };
 const RENDERERS = {
-  dashboard: renderDashboard, leads: renderLeads, clients: renderClients, tasks: renderTasks,
+  dashboard: renderDashboard, pipeline: renderKanban, leads: renderLeads, clients: renderClients, tasks: renderTasks,
   quotations: renderBilling, payments: renderPayments, notifications: renderNotifications,
-  reports: renderReports, users: renderUsers
+  callhistory: renderCallHistory, reports: renderReports, users: renderUsers, settings: renderSettings
 };
 function goToSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -71,13 +74,47 @@ document.querySelectorAll('.modal-overlay').forEach(ov => {
 
 function statusBadge(status) {
   const map = {
-    New:'badge-blue', Contacted:'badge-amber', Qualified:'badge-purple', Converted:'badge-green', Lost:'badge-gray',
+    New:'badge-blue', Contacted:'badge-amber', 'Follow-up':'badge-amber', Qualified:'badge-purple', Converted:'badge-green', Lost:'badge-gray',
     Pending:'badge-gray', 'In Progress':'badge-amber', Completed:'badge-green',
     Draft:'badge-gray', Sent:'badge-blue', Accepted:'badge-green', Rejected:'badge-red',
     Unpaid:'badge-red', 'Partially Paid':'badge-amber', Paid:'badge-green',
     Low:'badge-gray', Medium:'badge-amber', High:'badge-red'
   };
   return `<span class="badge ${map[status] || 'badge-gray'}"><span class="badge-dot-sm"></span>${status}</span>`;
+}
+
+// Suggested score for a lead based purely on where it sits in the
+// pipeline — used as a sensible default; reps can always override it.
+function scoreForStatus(status) {
+  const map = { New:20, Contacted:40, 'Follow-up':55, Qualified:75, Converted:100, Lost:0 };
+  return map[status] ?? 20;
+}
+
+function scoreColor(score) {
+  if (score >= 70) return 'var(--green)';
+  if (score >= 40) return 'var(--amber-600)';
+  return 'var(--red)';
+}
+
+// Small circular "donut" graph for a 0-100 score — used wherever we used
+// to show a flat progress bar (Kanban cards, lead table, lead detail).
+function scoreDonut(score, size) {
+  size = size || 46;
+  const stroke = Math.round(size * 0.13);
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score || 0));
+  const offset = c - (pct / 100) * c;
+  const color = scoreColor(pct);
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="score-donut">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--slate-200)" stroke-width="${stroke}"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+        stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"
+        transform="rotate(-90 ${size/2} ${size/2})"/>
+      <text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle"
+        font-size="${size*0.30}" font-weight="700" fill="${color}" font-family="var(--font-body)">${pct}</text>
+    </svg>`;
 }
 
 function initialsAvatar(name) {
@@ -108,12 +145,14 @@ function fillServiceSelect(sel) {
    ================================================================ */
 function computeLiveNotifications() {
   const notifs = [];
+  const settings = getSettings();
+  const leadWindow = settings.reminderDays;
   const leads = DB.get(DB_KEYS.leads);
   leads.filter(l => !['Converted','Lost'].includes(l.status)).forEach(l => {
     const lastFu = l.followUps[l.followUps.length - 1];
     if (lastFu && lastFu.nextFollowUpDate) {
       const d = daysUntil(lastFu.nextFollowUpDate);
-      if (d !== null && d <= 1) {
+      if (d !== null && d <= leadWindow && (d >= 0 || settings.flagOverdue)) {
         notifs.push({ id: 'fu_' + l.id, type: d < 0 ? 'overdue' : 'due', message: `Follow-up ${d < 0 ? 'overdue' : 'due'} with ${l.name}${l.company ? ' (' + l.company + ')' : ''}`, date: lastFu.nextFollowUpDate, section:'leads' });
       }
     }
@@ -121,7 +160,7 @@ function computeLiveNotifications() {
   const invoices = DB.get(DB_KEYS.invoices);
   invoices.filter(i => i.status !== 'Paid').forEach(inv => {
     const d = daysUntil(inv.dueDate);
-    if (d !== null && d <= 2) {
+    if (d !== null && d <= (leadWindow + 1) && (d >= 0 || settings.flagOverdue)) {
       const c = DB.find(DB_KEYS.clients, inv.clientId);
       notifs.push({ id: 'inv_' + inv.id, type: d < 0 ? 'overdue' : 'due', message: `Invoice ${inv.number || inv.id.slice(-5)} for ${c ? c.name : 'client'} ${d < 0 ? 'is overdue' : 'due soon'} — ${fmtMoney(inv.total)}`, date: inv.dueDate, section:'quotations' });
     }
@@ -129,7 +168,7 @@ function computeLiveNotifications() {
   const tasks = DB.get(DB_KEYS.tasks);
   tasks.filter(t => t.status !== 'Completed').forEach(t => {
     const d = daysUntil(t.dueDate);
-    if (d !== null && d <= 1) {
+    if (d !== null && d <= leadWindow && (d >= 0 || settings.flagOverdue)) {
       notifs.push({ id: 'task_' + t.id, type: d < 0 ? 'overdue' : 'due', message: `Task "${t.title}" ${d < 0 ? 'overdue' : 'due soon'} (${userName(t.assignedTo)})`, date: t.dueDate, section:'tasks' });
     }
   });
@@ -180,17 +219,38 @@ function renderDashboard() {
   const dueInvoiceAmt = invoices.filter(i => i.status !== 'Paid').reduce((s,i) => s + (i.total - paidForInvoice(i.id)), 0);
   const openTasks = tasks.filter(t => t.status !== 'Completed').length;
 
-  const stats = [
+  let stats = [
     { label:'Open Leads', value: openLeads, icon:'📇', bg:'var(--blue-bg)', color:'var(--blue)' },
     { label:'Total Clients', value: clients.length, icon:'🤝', bg:'var(--green-bg)', color:'var(--green)' },
     { label:'Revenue Collected', value: fmtMoney(totalRevenue), icon:'💰', bg:'#FEF1DC', color:'var(--amber-600)' },
     { label:'Amount Due', value: fmtMoney(dueInvoiceAmt), icon:'⏳', bg:'var(--red-bg)', color:'var(--red)' }
   ];
+  if (CU.role === 'Employee') {
+    const myLeads = leads.filter(l => l.assignedTo === CU.id && !['Converted','Lost'].includes(l.status));
+    const myTasks = tasks.filter(t => t.assignedTo === CU.id && t.status !== 'Completed');
+    const today = localDateKey();
+    const todayTasks = myTasks.filter(t => (t.dueDate || '').slice(0,10) === today);
+    const month = today.slice(0,7);
+    const myMonthlySales = payments.filter(p => {
+      const inv = DB.find(DB_KEYS.invoices, p.invoiceId);
+      const client = inv && DB.find(DB_KEYS.clients, inv.clientId);
+      return (p.date || '').slice(0,7) === month && client && client.assignedTo === CU.id;
+    }).reduce((sum,p) => sum + Number(p.amount || 0), 0);
+    stats = [
+      { label:'My Assigned Leads', value: myLeads.length, icon:'📇', bg:'var(--blue-bg)', color:'var(--blue)' },
+      { label:"Today's Tasks", value: todayTasks.length, icon:'✓', bg:'var(--green-bg)', color:'var(--green)' },
+      { label:'Pending Tasks', value: myTasks.length, icon:'⏳', bg:'#FEF1DC', color:'var(--amber-600)' },
+      { label:'My Monthly Sales', value: fmtMoney(myMonthlySales), icon:'₹', bg:'var(--teal-bg)', color:'var(--teal)' }
+    ];
+  }
+  renderDashboardHero({ openLeads, openTasks, dueInvoiceAmt });
   document.getElementById('statGrid').innerHTML = stats.map(s => `
     <div class="stat-card">
       <div class="top"><span class="label">${s.label}</span><span class="icon" style="background:${s.bg};color:${s.color};">${s.icon}</span></div>
       <div class="value">${s.value}</div>
     </div>`).join('');
+
+  renderRoleWorkspace({ leads, clients, payments, tasks });
 
   // Follow-ups due
   const fuRows = leads
@@ -220,9 +280,19 @@ function renderDashboard() {
     l.followUps.forEach(f => events.push({ date:f.date, text:`Follow-up logged for ${l.name}: “${f.note.slice(0,50)}${f.note.length>50?'…':''}”` }));
   });
   payments.forEach(p => { const inv = DB.find(DB_KEYS.invoices,p.invoiceId); const c = inv ? DB.find(DB_KEYS.clients,inv.clientId) : null; events.push({ date:p.date, text:`Payment of ${fmtMoney(p.amount)} received${c?' from '+c.name:''}` }); });
+
+  // Calls — shows exactly which number was called, by whom, so Admin
+  // can see every rep's call activity right on the dashboard.
+  const callLogs = DB.get(DB_KEYS.callLogs);
+  callLogs.forEach(c => {
+    const m = String(Math.floor(c.durationSec/60)).padStart(2,'0');
+    const s = String(c.durationSec%60).padStart(2,'0');
+    events.push({ date:c.date, text:`📞 ${c.byName} called ${c.phone || 'unknown number'} (${c.contactName}) — ${m}:${s}` });
+  });
+
   events.sort((a,b) => new Date(b.date) - new Date(a.date));
   const actWrap = document.getElementById('dashActivity');
-  actWrap.innerHTML = events.slice(0,7).map(e => `
+  actWrap.innerHTML = events.slice(0,8).map(e => `
     <div class="timeline-item"><div class="t-date">${fmtDateTime(e.date)}</div><div class="t-note">${e.text}</div></div>`).join('') || '<p class="small-muted">No activity yet.</p>';
 
   // Call list: open leads + a few clients
@@ -244,11 +314,80 @@ function renderDashboard() {
   refreshBell();
 }
 
+function renderDashboardHero({ openLeads, openTasks, dueInvoiceAmt }) {
+  const hero = document.getElementById('dashboardHero');
+  if (!hero) return;
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night';
+  const focus = CU.role === 'Employee'
+    ? `${openTasks} open task${openTasks === 1 ? '' : 's'} to move forward today.`
+    : CU.role === 'Accountant'
+      ? `${fmtMoney(dueInvoiceAmt)} is still awaiting collection.`
+      : `${openLeads} active lead${openLeads === 1 ? '' : 's'} ready for the next conversation.`;
+  const primaryAction = CU.role === 'Employee'
+    ? '<button class="btn btn-amber btn-sm" data-hero-nav="tasks">My tasks</button>'
+    : CU.role === 'Accountant'
+      ? '<button class="btn btn-amber btn-sm" data-hero-nav="payments">Review payments</button>'
+      : '<button class="btn btn-amber btn-sm" data-hero-addlead>+ Add lead</button>';
+  const secondary = CU.role === 'Employee' ? ['clients','Customers'] : CU.role === 'Accountant' ? ['reports','View reports'] : ['pipeline','View pipeline'];
+  hero.innerHTML = `<div class="hero-copy"><span class="hero-eyebrow">${now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span><h2>${greeting}, ${CU.name.split(' ')[0]}.</h2><p>${focus}</p></div><div class="hero-actions">${primaryAction}<button class="btn btn-hero-secondary btn-sm" data-hero-nav="${secondary[0]}">${secondary[1]}</button></div><div class="hero-orb hero-orb-one"></div><div class="hero-orb hero-orb-two"></div>`;
+  hero.querySelectorAll('[data-hero-nav]').forEach(b => b.addEventListener('click', () => goToSection(b.dataset.heroNav)));
+  const addLead = hero.querySelector('[data-hero-addlead]');
+  if (addLead) addLead.addEventListener('click', () => document.getElementById('addLeadBtn').click());
+}
+
+function renderRoleWorkspace({ leads, clients, payments, tasks }) {
+  const workspace = document.getElementById('roleWorkspace');
+  if (!workspace) return;
+  const today = localDateKey(effectiveToday());
+  const pending = tasks.filter(t => t.status !== 'Completed');
+  const thisMonth = localDateKey(effectiveToday()).slice(0, 7);
+  const monthlySales = payments.filter(p => (p.date || '').slice(0, 7) === thisMonth).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+  if (CU.role === 'Employee') {
+    const mine = pending.filter(t => t.assignedTo === CU.id);
+    const todayTasks = mine.filter(t => (t.dueDate || '').slice(0, 10) === today);
+    const assignedLeads = leads.filter(l => l.assignedTo === CU.id && !['Converted','Lost'].includes(l.status));
+    const monthlySales = payments.filter(p => {
+      const inv = DB.find(DB_KEYS.invoices, p.invoiceId);
+      const client = inv && DB.find(DB_KEYS.clients, inv.clientId);
+      return (p.date || '').slice(0,7) === thisMonth && client && client.assignedTo === CU.id;
+    }).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    workspace.innerHTML = `<div class="workspace-head"><div><h3>My work today</h3><span>Tasks, customer follow-ups and assigned leads in one place.</span></div><div class="workspace-actions"><button class="btn btn-outline btn-sm" data-workspace-nav="tasks">My tasks</button><button class="btn btn-outline btn-sm" data-workspace-nav="leads">Search leads</button><button class="btn btn-primary btn-sm" data-workspace-addlead>+ Add lead</button></div></div><div class="employee-work-grid employee-work-grid-wide"><div class="work-card today"><span>Today's tasks</span><strong>${todayTasks.length}</strong><small>${todayTasks.length ? todayTasks.map(t => t.title).slice(0,2).join(' · ') : 'Nothing due today'}</small></div><div class="work-card pending"><span>My pending work</span><strong>${mine.length}</strong><small>${mine.filter(t => t.status === 'In Progress').length} currently in progress</small></div><div class="work-card activity"><span>Assigned leads</span><strong>${assignedLeads.length}</strong><small>Open leads ready for follow-up</small></div><div class="work-card sales"><span>My monthly sales</span><strong>${fmtMoney(monthlySales)}</strong><small>Collections from my clients</small></div></div>`;
+  } else if (CU.role === 'Admin') {
+    const openDeals = leads.filter(l => !['Converted','Lost'].includes(l.status));
+    const won = leads.filter(l => l.status === 'Converted').length;
+    const conversion = leads.length ? Math.round(won / leads.length * 100) : 0;
+    workspace.innerHTML = `<div class="workspace-head"><div><h3>Manager overview</h3><span>Live sales and workload snapshot for your team.</span></div><button class="btn btn-outline btn-sm" data-workspace-nav="reports">Open reports</button></div><div class="manager-grid"><div class="manager-deal"><span>Total deals</span><strong>${leads.length}</strong><small>${openDeals.length} active · ${won} won</small></div><div class="manager-deal"><span>Monthly sales</span><strong>${fmtMoney(monthlySales)}</strong><small>Payments received this month</small></div><div class="manager-deal"><span>Team workload</span><strong>${pending.length}</strong><small>Open tasks across the team</small></div><div class="manager-deal"><span>Conversion</span><strong>${conversion}%</strong><small>Lead-to-client win rate</small></div></div>`;
+  } else if (CU.role === 'Sales') {
+    const myLeads = leads.filter(l => l.assignedTo === CU.id && !['Converted','Lost'].includes(l.status));
+    workspace.innerHTML = `<div class="workspace-head"><div><h3>Sales focus</h3><span>Keep leads moving with a quick follow-up.</span></div><div class="workspace-actions"><button class="btn btn-outline btn-sm" data-workspace-nav="leads">Search leads</button><button class="btn btn-primary btn-sm" data-workspace-addlead>+ Add lead</button></div></div><div class="employee-work-grid"><div class="work-card today"><span>Assigned leads</span><strong>${myLeads.length}</strong><small>Open opportunities assigned to you</small></div><div class="work-card pending"><span>Follow-ups due</span><strong>${myLeads.filter(l => l.followUps && l.followUps.some(f => f.nextFollowUpDate && f.nextFollowUpDate.slice(0,10) <= today)).length}</strong><small>Needs attention today</small></div><div class="work-card activity"><span>Monthly sales</span><strong>${fmtMoney(monthlySales)}</strong><small>Collected this month</small></div></div>`;
+  } else {
+    const outstanding = DB.get(DB_KEYS.invoices).filter(i => i.status !== 'Paid').reduce((sum, i) => sum + (i.total - paidForInvoice(i.id)), 0);
+    workspace.innerHTML = `<div class="workspace-head"><div><h3>Accounts overview</h3><span>Track collections and outstanding customer balances.</span></div><button class="btn btn-outline btn-sm" data-workspace-nav="payments">Open payments</button></div><div class="employee-work-grid"><div class="work-card today"><span>Monthly collections</span><strong>${fmtMoney(monthlySales)}</strong><small>Payments received this month</small></div><div class="work-card pending"><span>Outstanding amount</span><strong>${fmtMoney(outstanding)}</strong><small>Across unpaid invoices</small></div><div class="work-card activity"><span>Customers</span><strong>${clients.length}</strong><small>Active client records</small></div></div>`;
+  }
+  workspace.querySelectorAll('[data-workspace-nav]').forEach(b => b.addEventListener('click', () => goToSection(b.dataset.workspaceNav)));
+  const addLead = workspace.querySelector('[data-workspace-addlead]');
+  if (addLead) addLead.addEventListener('click', () => document.getElementById('addLeadBtn').click());
+}
+
+function contactActions(person, kind, targetId) {
+  const emailDisabled = person.email ? '' : 'disabled';
+  const waDisabled = person.phone ? '' : 'disabled';
+  return `<button class="btn btn-amber btn-sm" data-contact-call="${targetId}" data-contact-kind="${kind}">📞 Call</button><button class="btn btn-outline btn-sm" data-contact-email="${person.email || ''}" ${emailDisabled}>✉ Email</button><button class="btn btn-outline btn-sm" data-contact-wa="${person.phone || ''}" ${waDisabled}>◉ WhatsApp</button>`;
+}
+function wireContactActions(container) {
+  container.querySelectorAll('[data-contact-call]').forEach(b => b.addEventListener('click', () => startCall(b.dataset.contactCall, b.dataset.contactKind)));
+  container.querySelectorAll('[data-contact-email]').forEach(b => b.addEventListener('click', () => { if (b.dataset.contactEmail) window.location.href = `mailto:${b.dataset.contactEmail}`; }));
+  container.querySelectorAll('[data-contact-wa]').forEach(b => b.addEventListener('click', () => { const phone = b.dataset.contactWa.replace(/\D/g, ''); if (phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener'); }));
+}
+
 /* ================================================================
    LEADS
    ================================================================ */
 let leadFilterStatus = 'All';
-const LEAD_STATUSES = ['All','New','Contacted','Qualified','Converted','Lost'];
+const LEAD_STATUSES = ['All','New','Contacted','Follow-up','Qualified','Converted','Lost'];
 
 function renderLeadTabs() {
   const wrap = document.getElementById('leadStatusTabs');
@@ -260,6 +399,7 @@ function renderLeads() {
   renderLeadTabs();
   const search = (document.getElementById('leadSearch').value || '').toLowerCase();
   let leads = DB.get(DB_KEYS.leads);
+  if (CU.role === 'Employee') leads = leads.filter(l => l.assignedTo === CU.id);
   if (leadFilterStatus !== 'All') leads = leads.filter(l => l.status === leadFilterStatus);
   if (search) leads = leads.filter(l => [l.name,l.company,l.phone,l.email].join(' ').toLowerCase().includes(search));
   leads.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -271,47 +411,196 @@ function renderLeads() {
     return;
   }
   wrap.innerHTML = `<table>
-    <thead><tr><th>Lead</th><th>Contact</th><th>Source</th><th>Assigned</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Lead</th><th>Contact</th><th>Source</th><th>Assigned</th><th>Score</th><th>Status</th><th></th></tr></thead>
     <tbody>${leads.map(l => `
       <tr>
         <td><div class="cell-name">${l.name}</div><div class="cell-sub">${l.company||''}</div></td>
         <td>${l.phone}<div class="cell-sub">${l.email||''}</div></td>
         <td>${l.source}</td>
         <td>${userName(l.assignedTo)}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${scoreDonut(l.score||0, 34)}
+          </div>
+        </td>
         <td>${statusBadge(l.status)}</td>
         <td class="row-actions">
           <button class="btn btn-sm btn-amber" data-call="${l.id}" title="Call">📞</button>
+          <button class="btn btn-sm btn-outline" data-quick-email="${l.email||''}" title="Email" ${l.email?'':'disabled'}>✉</button>
+          <button class="btn btn-sm btn-outline" data-quick-wa="${l.phone||''}" title="WhatsApp" ${l.phone?'':'disabled'}>◉</button>
           <button class="btn btn-sm btn-outline" data-open="${l.id}">Open</button>
         </td>
       </tr>`).join('')}</tbody></table>`;
   wrap.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => openLeadDetail(b.dataset.open)));
   wrap.querySelectorAll('[data-call]').forEach(b => b.addEventListener('click', () => startCall(b.dataset.call,'lead')));
+  wrap.querySelectorAll('[data-quick-email]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quickEmail) window.location.href = `mailto:${b.dataset.quickEmail}`; }));
+  wrap.querySelectorAll('[data-quick-wa]').forEach(b => b.addEventListener('click', () => { const phone=b.dataset.quickWa.replace(/\D/g,''); if(phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener'); }));
 }
 document.getElementById('leadSearch').addEventListener('input', renderLeads);
+
+/* ================================================================
+   PIPELINE (KANBAN BOARD)
+   ================================================================ */
+const PIPELINE_STAGES = [
+  { key:'New', label:'New' },
+  { key:'Contacted', label:'Contacted' },
+  { key:'Follow-up', label:'Follow-up' },
+  { key:'Qualified', label:'Qualified' },
+  { key:'Converted', label:'Won' },
+  { key:'Lost', label:'Lost' }
+];
+
+function renderKanban() {
+  const board = document.getElementById('kanbanBoard');
+  if (!board) return;
+  const leads = CU.role === 'Employee' ? DB.get(DB_KEYS.leads).filter(l => l.assignedTo === CU.id) : DB.get(DB_KEYS.leads);
+  const activeLeads = leads.filter(l => !['Converted', 'Lost'].includes(l.status));
+  const won = leads.filter(l => l.status === 'Converted').length;
+  const winRate = leads.length ? Math.round((won / leads.length) * 100) : 0;
+  const qualified = leads.filter(l => l.status === 'Qualified').length;
+  const overview = document.getElementById('pipelineOverview');
+  if (overview) overview.innerHTML = `
+    <div class="pipeline-hero">
+      <div><span class="eyebrow">Open opportunities</span><strong>${activeLeads.length}</strong><span class="pipeline-hero-note">leads currently in progress</span></div>
+      <div class="pipeline-ring" style="--progress:${winRate * 3.6}deg"><span>${winRate}%</span><small>win rate</small></div>
+    </div>
+    <div class="pipeline-metric"><span class="metric-icon metric-purple">◎</span><div><span>Qualified leads</span><strong>${qualified}</strong><small>ready for a proposal</small></div></div>
+    <div class="pipeline-flow"><div class="flow-heading"><span>Pipeline flow</span><small>${leads.length} total leads</small></div><div class="flow-steps">${PIPELINE_STAGES.slice(0,5).map((stage, i) => { const n = leads.filter(l => l.status === stage.key).length; return `<div class="flow-step"><span class="flow-dot flow-dot-${i}"></span><b>${n}</b><small>${stage.label}</small></div>`; }).join('<span class="flow-line"></span>')}</div></div>`;
+
+  board.innerHTML = PIPELINE_STAGES.map(stage => {
+    const cards = leads.filter(l => l.status === stage.key);
+    return `
+    <div class="kanban-col stage-${stage.key.toLowerCase().replace(/[^a-z]/g,'')}" data-stage="${stage.key}">
+      <div class="kanban-col-head">
+        <div><span class="kanban-col-title">${stage.label}</span><span class="kanban-col-value">${cards.length} lead${cards.length === 1 ? '' : 's'}</span></div>
+        <span class="count">${cards.length}</span>
+      </div>
+      <div class="kanban-cards" data-stage-cards="${stage.key}">
+        ${cards.length ? cards.map(l => `
+          <div class="kanban-card" draggable="true" data-lead-id="${l.id}">
+            <div class="kc-top"><span class="kc-avatar">${initialsAvatar(l.name)}</span><div class="kc-id"><div class="kc-name">${l.name}</div><span class="kc-tag">${l.source || 'Direct'}</span></div></div>
+            <div class="kc-meta">${l.company || l.phone || 'No company added'}</div>
+            <div class="kc-score-row">
+              ${scoreDonut(l.score||0, 38)}
+              <span class="kc-score-label">Lead score</span>
+            </div>
+            <div class="kc-foot">
+              <span class="kc-assignee">${userName(l.assignedTo)}</span>
+              <button class="btn btn-sm btn-outline" data-kanban-open="${l.id}" style="padding:3px 10px;">Open</button>
+            </div>
+          </div>`).join('') : '<div class="kanban-empty">No leads here</div>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  board.querySelectorAll('[data-kanban-open]').forEach(b =>
+    b.addEventListener('click', () => openLeadDetail(b.dataset.kanbanOpen)));
+
+  wireKanbanDragDrop();
+}
+
+function wireKanbanDragDrop() {
+  const board = document.getElementById('kanbanBoard');
+  let draggedId = null;
+
+  board.querySelectorAll('.kanban-card').forEach(card => {
+    card.addEventListener('dragstart', () => {
+      draggedId = card.dataset.leadId;
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+  });
+
+  board.querySelectorAll('.kanban-col').forEach(col => {
+    col.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      col.classList.add('drag-over');
+    });
+    col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+    col.addEventListener('drop', (e) => {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      if (!draggedId) return;
+      const newStage = col.dataset.stage;
+      handleLeadStageDrop(draggedId, newStage);
+      draggedId = null;
+    });
+  });
+}
+
+function handleLeadStageDrop(leadId, newStage) {
+  const lead = DB.find(DB_KEYS.leads, leadId);
+  if (!lead || lead.status === newStage) return;
+
+  // Dropping into "Won" runs the real conversion flow (creates the
+  // client record), same as everywhere else in the app — a drag alone
+  // shouldn't silently skip that step.
+  if (newStage === 'Converted') {
+    activeLeadId = leadId;
+    document.getElementById('convLeadId').value = lead.id;
+    document.getElementById('convLeadName').textContent = lead.name;
+    document.getElementById('convAddress').value = '';
+    openModal('modal-convert');
+    return;
+  }
+
+  const score = newStage === 'Lost' ? 0 : Math.max(lead.score || 0, scoreForStatus(newStage));
+  DB.update(DB_KEYS.leads, leadId, { status: newStage, score });
+  toast(`${lead.name} moved to ${newStage}`, 'success');
+  renderKanban(); renderLeads(); renderDashboard();
+}
 
 function openAddLead(prefillPhone, prefillName) {
   document.getElementById('leadModalTitle').textContent = 'Add Lead';
   document.getElementById('leadForm').reset();
+  document.getElementById('leadPhoneErr').style.display = 'none';
+  document.getElementById('leadEmailErr').style.display = 'none';
   document.getElementById('leadId').value = '';
   document.getElementById('leadName').value = prefillName || '';
-  document.getElementById('leadPhone').value = prefillPhone || '';
-  fillUserSelect(document.getElementById('leadAssignedTo'), ['Sales','Admin']);
-  document.getElementById('leadAssignedTo').value = CU.role === 'Sales' ? CU.id : document.getElementById('leadAssignedTo').value;
+  document.getElementById('leadPhone').value = sanitizePhoneInput(prefillPhone || '');
+  document.getElementById('leadScore').value = scoreForStatus('New');
+  fillUserSelect(document.getElementById('leadAssignedTo'), ['Sales','Employee','Admin']);
+  document.getElementById('leadAssignedTo').value = ['Sales','Employee'].includes(CU.role) ? CU.id : document.getElementById('leadAssignedTo').value;
   openModal('modal-lead');
 }
 document.getElementById('addLeadBtn').addEventListener('click', () => openAddLead());
+document.getElementById('addLeadFromPipelineBtn').addEventListener('click', () => openAddLead());
+
+// Live-sanitize phone fields as the user types: digits only, max 10 chars.
+document.getElementById('leadPhone').addEventListener('input', (e) => {
+  e.target.value = sanitizePhoneInput(e.target.value);
+});
 
 document.getElementById('saveLeadBtn').addEventListener('click', () => {
   const name = document.getElementById('leadName').value.trim();
   const phone = document.getElementById('leadPhone').value.trim();
+  const email = document.getElementById('leadEmail').value.trim();
+
+  document.getElementById('leadPhoneErr').style.display = 'none';
+  document.getElementById('leadEmailErr').style.display = 'none';
+
   if (!name || !phone) { toast('Name and phone are required', 'error'); return; }
+
+  if (!isValidPhone10(phone)) {
+    document.getElementById('leadPhoneErr').style.display = 'block';
+    toast('Phone number must be exactly 10 digits', 'error');
+    return;
+  }
+  if (email && !isValidEmail(email)) {
+    document.getElementById('leadEmailErr').style.display = 'block';
+    toast('Enter a valid email address (must contain @)', 'error');
+    return;
+  }
+
   const id = document.getElementById('leadId').value;
+  const scoreInput = document.getElementById('leadScore').value;
   const payload = {
     name, phone,
-    email: document.getElementById('leadEmail').value.trim(),
+    email,
     company: document.getElementById('leadCompany').value.trim(),
     source: document.getElementById('leadSource').value,
     assignedTo: document.getElementById('leadAssignedTo').value,
+    score: scoreInput !== '' ? Math.max(0, Math.min(100, Number(scoreInput))) : scoreForStatus('New'),
     notes: document.getElementById('leadNotes').value.trim()
   };
   if (id) {
@@ -322,7 +611,7 @@ document.getElementById('saveLeadBtn').addEventListener('click', () => {
     toast('Lead added', 'success');
   }
   closeModal('modal-lead');
-  renderLeads(); renderDashboard();
+  renderLeads(); renderDashboard(); renderKanban();
 });
 
 let activeLeadId = null;
@@ -337,6 +626,11 @@ function openLeadDetail(id) {
   document.getElementById('ldSource').textContent = lead.source;
   document.getElementById('ldAssigned').textContent = userName(lead.assignedTo);
   document.getElementById('ldStatus').innerHTML = statusBadge(lead.status);
+  document.getElementById('ldScore').innerHTML =
+    `<div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">${scoreDonut(lead.score||0, 34)}</div>`;
+  const leadActions = document.getElementById('leadContactActions');
+  leadActions.innerHTML = contactActions(lead, 'lead', lead.id);
+  wireContactActions(leadActions);
   document.getElementById('fuNote').value = '';
   document.getElementById('fuNextDate').value = '';
   document.getElementById('fuStatus').value = lead.status === 'Converted' ? 'Qualified' : lead.status;
@@ -355,17 +649,18 @@ document.getElementById('saveFollowUpBtn').addEventListener('click', () => {
   const fu = { id: uid('fu'), date: nowISO(), note, nextFollowUpDate: document.getElementById('fuNextDate').value ? new Date(document.getElementById('fuNextDate').value).toISOString() : null, by: CU.id };
   lead.followUps.push(fu);
   lead.status = document.getElementById('fuStatus').value;
-  DB.update(DB_KEYS.leads, activeLeadId, { followUps: lead.followUps, status: lead.status });
+  lead.score = Math.max(lead.score || 0, scoreForStatus(lead.status));
+  DB.update(DB_KEYS.leads, activeLeadId, { followUps: lead.followUps, status: lead.status, score: lead.score });
   toast('Follow-up saved', 'success');
   openLeadDetail(activeLeadId);
-  renderLeads(); renderDashboard(); refreshBell();
+  renderLeads(); renderDashboard(); renderKanban(); refreshBell();
 });
 
 document.getElementById('markLostBtn').addEventListener('click', () => {
-  DB.update(DB_KEYS.leads, activeLeadId, { status:'Lost' });
+  DB.update(DB_KEYS.leads, activeLeadId, { status:'Lost', score: 0 });
   toast('Lead marked as lost');
   closeModal('modal-leadDetail');
-  renderLeads(); renderDashboard();
+  renderLeads(); renderDashboard(); renderKanban();
 });
 
 document.getElementById('convertLeadBtn').addEventListener('click', () => {
@@ -385,10 +680,10 @@ document.getElementById('confirmConvertBtn').addEventListener('click', () => {
     assignedTo: lead.assignedTo, convertedAt: nowISO()
   };
   DB.insert(DB_KEYS.clients, client);
-  DB.update(DB_KEYS.leads, leadId, { status:'Converted' });
+  DB.update(DB_KEYS.leads, leadId, { status:'Converted', score: 100 });
   toast(`${lead.name} converted to client 🎉`, 'success');
   closeModal('modal-convert');
-  renderLeads(); renderClients(); renderDashboard();
+  renderLeads(); renderClients(); renderDashboard(); renderKanban();
 });
 
 /* ================================================================
@@ -417,22 +712,54 @@ function renderClients() {
         <td>${bal > 0 ? `<span class="badge badge-red">${fmtMoney(bal)}</span>` : `<span class="badge badge-green">Settled</span>`}</td>
         <td class="row-actions">
           <button class="btn btn-sm btn-amber" data-call="${c.id}" title="Call">📞</button>
+          <button class="btn btn-sm btn-outline" data-quick-email="${c.email||''}" title="Email" ${c.email?'':'disabled'}>✉</button>
+          <button class="btn btn-sm btn-outline" data-quick-wa="${c.phone||''}" title="WhatsApp" ${c.phone?'':'disabled'}>◉</button>
           <button class="btn btn-sm btn-outline" data-open="${c.id}">Open</button>
         </td>
       </tr>`;
     }).join('')}</tbody></table>`;
   wrap.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => openClientDetail(b.dataset.open)));
   wrap.querySelectorAll('[data-call]').forEach(b => b.addEventListener('click', () => startCall(b.dataset.call,'client')));
+  wrap.querySelectorAll('[data-quick-email]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quickEmail) window.location.href = `mailto:${b.dataset.quickEmail}`; }));
+  wrap.querySelectorAll('[data-quick-wa]').forEach(b => b.addEventListener('click', () => { const phone=b.dataset.quickWa.replace(/\D/g,''); if(phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener'); }));
 }
 document.getElementById('clientSearch').addEventListener('input', renderClients);
-document.getElementById('addClientBtn').addEventListener('click', () => { document.getElementById('clientForm').reset(); openModal('modal-client'); });
+document.getElementById('addClientBtn').addEventListener('click', () => {
+  document.getElementById('clientForm').reset();
+  document.getElementById('clientPhoneErr').style.display = 'none';
+  document.getElementById('clientEmailErr').style.display = 'none';
+  openModal('modal-client');
+});
+
+// Live-sanitize phone field as the user types: digits only, max 10 chars.
+document.getElementById('clientPhone').addEventListener('input', (e) => {
+  e.target.value = sanitizePhoneInput(e.target.value);
+});
+
 document.getElementById('saveClientBtn').addEventListener('click', () => {
   const name = document.getElementById('clientName').value.trim();
   const phone = document.getElementById('clientPhone').value.trim();
+  const email = document.getElementById('clientEmail').value.trim();
+
+  document.getElementById('clientPhoneErr').style.display = 'none';
+  document.getElementById('clientEmailErr').style.display = 'none';
+
   if (!name || !phone) { toast('Name and phone are required', 'error'); return; }
+
+  if (!isValidPhone10(phone)) {
+    document.getElementById('clientPhoneErr').style.display = 'block';
+    toast('Phone number must be exactly 10 digits', 'error');
+    return;
+  }
+  if (email && !isValidEmail(email)) {
+    document.getElementById('clientEmailErr').style.display = 'block';
+    toast('Enter a valid email address (must contain @)', 'error');
+    return;
+  }
+
   DB.insert(DB_KEYS.clients, {
     id: uid('cli'), leadId:null, name, phone,
-    email: document.getElementById('clientEmail').value.trim(),
+    email,
     company: document.getElementById('clientCompany').value.trim(),
     address: document.getElementById('clientAddress').value.trim(),
     assignedTo: CU.id, convertedAt: nowISO()
@@ -460,6 +787,9 @@ function openClientDetail(id) {
   document.getElementById('cdInvoiced').textContent = fmtMoney(invoiced);
   document.getElementById('cdPaid').textContent = fmtMoney(paid);
   document.getElementById('cdDue').textContent = fmtMoney(invoiced - paid);
+  const clientActions = document.getElementById('clientContactActions');
+  clientActions.innerHTML = contactActions(c, 'client', c.id);
+  wireContactActions(clientActions);
   const tasks = DB.get(DB_KEYS.tasks).filter(t => t.clientId === id);
   document.getElementById('cdTasks').innerHTML = tasks.length
     ? tasks.map(t => `<div class="kv"><span class="k">${t.title}</span><span class="v">${statusBadge(t.status)}</span></div>`).join('')
@@ -750,39 +1080,49 @@ document.getElementById('savePaymentBtn').addEventListener('click', () => {
    ================================================================ */
 function renderReports() {
   const leads = DB.get(DB_KEYS.leads);
-  const funnel = ['New','Contacted','Qualified','Converted','Lost'].map(s => ({ s, n: leads.filter(l=>l.status===s).length }));
+  const funnel = ['New','Contacted','Follow-up','Qualified','Converted'].map(s => ({ s, n: leads.filter(l=>l.status===s).length }));
   const max = Math.max(1, ...funnel.map(f=>f.n));
-  const colors = { New:'var(--blue)', Contacted:'var(--amber-500)', Qualified:'var(--purple)', Converted:'var(--green)', Lost:'var(--gray)' };
-  document.getElementById('funnelChart').innerHTML = funnel.map(f => `
-    <div style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>${f.s}</span><b>${f.n}</b></div>
-      <div class="progress-bar"><span style="width:${(f.n/max)*100}%;background:${colors[f.s]};"></span></div>
-    </div>`).join('');
+  const funnelColors = ['#38bdf8','#fbbf24','#a78bfa','#22c55e','#14b8a6'];
+  document.getElementById('funnelChart').innerHTML = `<div class="funnel-visual">${funnel.map((f, i) => `<div class="funnel-stage"><div class="funnel-bar" style="width:${Math.max(34, (f.n/max)*100)}%;background:${funnelColors[i]}"><span>${f.n}</span></div><div class="funnel-label"><span>${f.s}</span><b>${leads.length ? Math.round(f.n/leads.length*100) : 0}%</b></div></div>`).join('')}</div>`;
 
   const invoices = DB.get(DB_KEYS.invoices);
   const payments = DB.get(DB_KEYS.payments);
   const invoicedTotal = invoices.reduce((s,i)=>s+i.total,0);
   const collectedTotal = payments.reduce((s,p)=>s+Number(p.amount),0);
   const rmax = Math.max(1, invoicedTotal, collectedTotal);
-  document.getElementById('revenueChart').innerHTML = `
-    <div style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>Invoiced</span><b>${fmtMoney(invoicedTotal)}</b></div>
-      <div class="progress-bar"><span style="width:${(invoicedTotal/rmax)*100}%;background:var(--blue);"></span></div>
-    </div>
-    <div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>Collected</span><b>${fmtMoney(collectedTotal)}</b></div>
-      <div class="progress-bar"><span style="width:${(collectedTotal/rmax)*100}%;background:var(--green);"></span></div>
-    </div>`;
+  const invH = Math.max(8, Math.round(invoicedTotal / rmax * 136));
+  const colH = Math.max(8, Math.round(collectedTotal / rmax * 136));
+  document.getElementById('revenueChart').innerHTML = `<div class="revenue-visual"><div class="revenue-bars"><div class="revenue-bar-group"><span class="revenue-value">${fmtMoney(invoicedTotal)}</span><div class="revenue-bar invoiced" style="height:${invH}px"></div><small>Invoiced</small></div><div class="revenue-bar-group"><span class="revenue-value">${fmtMoney(collectedTotal)}</span><div class="revenue-bar collected" style="height:${colH}px"></div><small>Collected</small></div></div><div class="revenue-legend"><span><i class="legend-swatch inv"></i>Invoiced</span><span><i class="legend-swatch col"></i>Collected</span></div></div>`;
+
+  const monthPoints = Array.from({ length:6 }, (_, index) => {
+    const d = new Date(effectiveToday().getFullYear(), effectiveToday().getMonth() - (5 - index), 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    return { label:d.toLocaleString('en-IN', { month:'short' }), value:payments.filter(p => (p.date || '').slice(0,7) === key).reduce((sum,p) => sum + Number(p.amount || 0), 0) };
+  });
+  const trendMax = Math.max(1, ...monthPoints.map(p => p.value));
+  const graphW = 720, left = 42, right = 20, top = 22, bottom = 38, graphH = 160;
+  const pointCoords = monthPoints.map((p, i) => ({ ...p, x:left + i * ((graphW-left-right)/(monthPoints.length-1)), y:top + graphH - (p.value/trendMax * graphH) }));
+  const polyline = pointCoords.map(p => `${p.x},${p.y}`).join(' ');
+  document.getElementById('salesTrendChart').innerHTML = `<div class="trend-chart"><svg viewBox="0 0 720 220" role="img" aria-label="Monthly sales line graph"><defs><linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#14b8a6" stop-opacity=".24"/><stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/></linearGradient></defs><path class="trend-area" d="M ${pointCoords[0].x} ${top+graphH} L ${polyline.replace(/ /g,' L ')} L ${pointCoords[pointCoords.length-1].x} ${top+graphH} Z"/><line class="trend-axis" x1="${left}" y1="${top+graphH}" x2="${graphW-right}" y2="${top+graphH}"/><polyline class="trend-line" points="${polyline}"/>${pointCoords.map(p => `<g><circle class="trend-point" cx="${p.x}" cy="${p.y}" r="5"><title>${p.label}: ${fmtMoney(p.value)}</title></circle><text class="trend-value" x="${p.x}" y="${Math.max(14,p.y-12)}">${fmtMoney(p.value)}</text><text class="trend-label" x="${p.x}" y="${top+graphH+25}">${p.label}</text></g>`).join('')}</svg></div>`;
+
+  const conversion = leads.length ? Math.round((leads.filter(l => l.status === 'Converted').length / leads.length) * 100) : 0;
+  const reportKpis = document.getElementById('reportKpis');
+  if (reportKpis) reportKpis.innerHTML = [
+    ['Total leads', leads.length, 'All opportunities'],
+    ['Conversion rate', `${conversion}%`, 'Leads won'],
+    ['Revenue collected', fmtMoney(collectedTotal), 'Paid invoices']
+  ].map((k, i) => `<div class="report-kpi kpi-${i}"><span>${k[0]}</span><strong>${k[1]}</strong><small>${k[2]}</small></div>`).join('');
 
   const users = DB.get(DB_KEYS.users).filter(u => u.role==='Sales'||u.role==='Employee');
-  document.getElementById('teamPerfTable').innerHTML = `<table>
-    <thead><tr><th>Team member</th><th>Leads assigned</th><th>Clients converted</th><th>Tasks completed</th></tr></thead>
-    <tbody>${users.map(u => {
-      const la = leads.filter(l=>l.assignedTo===u.id).length;
-      const conv = DB.get(DB_KEYS.clients).filter(c=>c.assignedTo===u.id).length;
-      const done = DB.get(DB_KEYS.tasks).filter(t=>t.assignedTo===u.id && t.status==='Completed').length;
-      return `<tr><td class="cell-name">${u.name}</td><td>${la}</td><td>${conv}</td><td>${done}</td></tr>`;
-    }).join('')}</tbody></table>`;
+  const teamData = users.map(u => ({
+    name: u.name,
+    initials: initialsAvatar(u.name),
+    leads: leads.filter(l=>l.assignedTo===u.id).length,
+    converted: DB.get(DB_KEYS.clients).filter(c=>c.assignedTo===u.id).length,
+    tasks: DB.get(DB_KEYS.tasks).filter(t=>t.assignedTo===u.id && t.status==='Completed').length
+  }));
+  const teamMax = Math.max(1, ...teamData.flatMap(t => [t.leads, t.converted, t.tasks]));
+  document.getElementById('teamPerfTable').innerHTML = `<div class="team-chart"><div class="team-chart-legend"><span><i class="team-swatch leads"></i>Leads assigned</span><span><i class="team-swatch converted"></i>Converted</span><span><i class="team-swatch tasks"></i>Tasks completed</span></div>${teamData.length ? `<div class="team-column-chart">${teamData.map(t => `<div class="team-column-group"><div class="team-column-values"><div class="team-column-wrap"><b>${t.leads}</b><span class="team-column leads" style="height:${t.leads/teamMax*100}%"></span></div><div class="team-column-wrap"><b>${t.converted}</b><span class="team-column converted" style="height:${t.converted/teamMax*100}%"></span></div><div class="team-column-wrap"><b>${t.tasks}</b><span class="team-column tasks" style="height:${t.tasks/teamMax*100}%"></span></div></div><div class="team-person"><span class="team-initials">${t.initials}</span><span>${t.name.split(' ')[0]}</span></div></div>`).join('')}</div>` : '<p class="small-muted">No team performance data yet.</p>'}</div>`;
 }
 
 /* ================================================================
@@ -865,7 +1205,23 @@ function endCall() {
   closeModal('modal-call');
   const m = String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s = String(callSeconds%60).padStart(2,'0');
-  document.getElementById('wrapupSummary').textContent = `Duration ${m}:${s} with ${callContext.name}`;
+  document.getElementById('wrapupSummary').textContent =
+    `Called ${callContext.phone || '—'} · Duration ${m}:${s} with ${callContext.name}`;
+
+  // Log this call so Admin (and everyone else) can see who called which
+  // number, when, and for how long — visible on the Dashboard activity feed.
+  DB.insert(DB_KEYS.callLogs, {
+    id: uid('call'),
+    by: CU.id,
+    byName: CU.name,
+    byRole: CU.role,
+    kind: callContext.kind,
+    contactId: callContext.id,
+    contactName: callContext.name,
+    phone: callContext.phone || '',
+    durationSec: callSeconds,
+    date: nowISO()
+  });
 
   // Show only the actions relevant to this call's context
   const isKnownLead = callContext.kind === 'lead';
@@ -909,16 +1265,148 @@ document.getElementById('waLost').addEventListener('click', () => {
 
 document.getElementById('newCallBtn').addEventListener('click', () => {
   document.getElementById('ncName').value = ''; document.getElementById('ncPhone').value = '';
+  document.getElementById('ncPhoneErr').style.display = 'none';
   openModal('modal-newcall');
 });
+
+// Live-sanitize: only digits allowed, capped at 10 characters.
+document.getElementById('ncPhone').addEventListener('input', (e) => {
+  e.target.value = sanitizePhoneInput(e.target.value);
+});
+
 document.getElementById('ncStartBtn').addEventListener('click', () => {
   const phone = document.getElementById('ncPhone').value.trim();
+  document.getElementById('ncPhoneErr').style.display = 'none';
+
   if (!phone) { toast('Enter a phone number to call', 'error'); return; }
+  if (!isValidPhone10(phone)) {
+    document.getElementById('ncPhoneErr').style.display = 'block';
+    toast('Phone number must be exactly 10 digits', 'error');
+    return;
+  }
+
   closeModal('modal-newcall');
   startNewCall(document.getElementById('ncName').value.trim(), phone);
+});
+
+/* ================================================================
+   CALL HISTORY
+   ================================================================ */
+function renderCallHistory() {
+  const logs = [...DB.get(DB_KEYS.callLogs)].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  const totalCalls = logs.length;
+  const totalSeconds = logs.reduce((s,c) => s + (c.durationSec||0), 0);
+  const avgSeconds = totalCalls ? Math.round(totalSeconds/totalCalls) : 0;
+  const fmtDur = (sec) => `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
+
+  document.getElementById('callStatGrid').innerHTML = [
+    { label:'Total Calls', value: totalCalls, icon:'📞', bg:'var(--blue-bg)', color:'var(--blue)' },
+    { label:'Total Talk Time', value: fmtDur(totalSeconds), icon:'⏱', bg:'var(--green-bg)', color:'var(--green)' },
+    { label:'Avg Call Length', value: fmtDur(avgSeconds), icon:'📊', bg:'#FEF1DC', color:'var(--amber-600)' }
+  ].map(s => `
+    <div class="stat-card">
+      <div class="top"><span class="label">${s.label}</span><span class="icon" style="background:${s.bg};color:${s.color};">${s.icon}</span></div>
+      <div class="value">${s.value}</div>
+    </div>`).join('');
+
+  const search = (document.getElementById('callSearch').value || '').toLowerCase();
+  const filtered = search
+    ? logs.filter(c => [c.contactName, c.phone, c.byName].join(' ').toLowerCase().includes(search))
+    : logs;
+
+  const wrap = document.getElementById('callHistoryTable');
+  if (!filtered.length) {
+    wrap.innerHTML = emptyState(ICON_EMPTY, 'No calls logged yet', 'Calls you make from the CRM will show up here automatically.');
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Contact</th><th>Number</th><th>Called by</th><th>Duration</th><th>When</th></tr></thead>
+    <tbody>${filtered.map(c => `
+      <tr>
+        <td><div class="cell-name">${c.contactName}</div><div class="cell-sub">${c.kind === 'lead' ? 'Lead' : c.kind === 'client' ? 'Client' : 'New number'}</div></td>
+        <td>${c.phone || '—'}</td>
+        <td>${c.byName}<div class="cell-sub">${c.byRole||''}</div></td>
+        <td>${fmtDur(c.durationSec||0)}</td>
+        <td>${fmtDateTime(c.date)}</td>
+      </tr>`).join('')}</tbody></table>`;
+}
+document.getElementById('callSearch').addEventListener('input', renderCallHistory);
+
+/* ================================================================
+   SETTINGS
+   ================================================================ */
+function renderSettings() {
+  document.getElementById('setAvatar').textContent = initialsAvatar(CU.name);
+  document.getElementById('setName').textContent = CU.name;
+  document.getElementById('setEmailRole').textContent = `${CU.email} · ${CU.role}`;
+
+  const settings = getSettings();
+  document.getElementById('setReminderDays').value = settings.reminderDays;
+  document.getElementById('setNotifyOverdue').checked = settings.flagOverdue;
+  document.getElementById('setCompanyName').value = settings.companyName || '';
+  document.getElementById('setCompanyEmail').value = settings.companyEmail || '';
+  document.getElementById('setCompanyPhone').value = settings.companyPhone || '';
+  document.getElementById('setCurrency').value = settings.currency || 'INR';
+}
+
+document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+  const days = Math.max(0, Math.min(14, Number(document.getElementById('setReminderDays').value) || 0));
+  const flagOverdue = document.getElementById('setNotifyOverdue').checked;
+  saveSettings({ reminderDays: days, flagOverdue });
+  toast('Preferences saved', 'success');
+  refreshBell();
+});
+
+document.getElementById('saveCompanyBtn').addEventListener('click', () => {
+  const email = document.getElementById('setCompanyEmail').value.trim();
+  if (email && !isValidEmail(email)) { toast('Enter a valid business email', 'error'); return; }
+  saveSettings({
+    companyName: document.getElementById('setCompanyName').value.trim(),
+    companyEmail: email,
+    companyPhone: document.getElementById('setCompanyPhone').value.trim(),
+    currency: document.getElementById('setCurrency').value
+  });
+  toast('Company profile saved', 'success');
+  renderDashboard();
+});
+
+document.getElementById('exportDataBtn').addEventListener('click', () => {
+  const dump = {};
+  Object.values(DB_KEYS).forEach(key => {
+    if (key === DB_KEYS.session || key === DB_KEYS.seeded) return;
+    dump[key] = DB.get(key);
+  });
+  const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nexacrm-export-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('Data exported', 'success');
+});
+
+document.getElementById('resetDataBtn').addEventListener('click', () => {
+  if (!confirm('This will erase all leads, clients, tasks, invoices, payments and call logs in this browser and reload the demo data. Continue?')) return;
+  Object.values(DB_KEYS).forEach(key => localStorage.removeItem(key));
+  sessionStorage.removeItem(DB_KEYS.session);
+  window.location.href = 'index.html';
 });
 
 /* ================================================================
    INITIAL RENDER
    ================================================================ */
 goToSection('dashboard');
+
+// Keep the welcome message, date and day correct exactly when a new minute
+// starts (for example, 11:59 AM → 12:00 PM), rather than one minute after
+// the page happened to be opened.
+function refreshDashboardOnMinute() {
+  if (document.getElementById('sec-dashboard').classList.contains('active')) renderDashboard();
+  const millisecondsToNextMinute = 60000 - (Date.now() % 60000) + 25;
+  setTimeout(refreshDashboardOnMinute, millisecondsToNextMinute);
+}
+refreshDashboardOnMinute();
