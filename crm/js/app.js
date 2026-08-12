@@ -318,8 +318,6 @@ function renderDashboardHero({ openLeads, openTasks, dueInvoiceAmt }) {
   const hero = document.getElementById('dashboardHero');
   if (!hero) return;
   const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night';
   const focus = CU.role === 'Employee'
     ? `${openTasks} open task${openTasks === 1 ? '' : 's'} to move forward today.`
     : CU.role === 'Accountant'
@@ -331,7 +329,7 @@ function renderDashboardHero({ openLeads, openTasks, dueInvoiceAmt }) {
       ? '<button class="btn btn-amber btn-sm" data-hero-nav="payments">Review payments</button>'
       : '<button class="btn btn-amber btn-sm" data-hero-addlead>+ Add lead</button>';
   const secondary = CU.role === 'Employee' ? ['clients','Customers'] : CU.role === 'Accountant' ? ['reports','View reports'] : ['pipeline','View pipeline'];
-  hero.innerHTML = `<div class="hero-copy"><span class="hero-eyebrow">${now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span><h2>${greeting}, ${CU.name.split(' ')[0]}.</h2><p>${focus}</p></div><div class="hero-actions">${primaryAction}<button class="btn btn-hero-secondary btn-sm" data-hero-nav="${secondary[0]}">${secondary[1]}</button></div><div class="hero-orb hero-orb-one"></div><div class="hero-orb hero-orb-two"></div>`;
+  hero.innerHTML = `<div class="hero-copy"><span class="hero-eyebrow"><span class="hero-live-dot"></span>${now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span><h2><span>${CU.name.split(' ')[0]}.</span></h2><p>${focus}</p></div><div class="hero-actions">${primaryAction}<button class="btn btn-hero-secondary btn-sm" data-hero-nav="${secondary[0]}">${secondary[1]}</button></div><div class="hero-orb hero-orb-one"></div><div class="hero-orb hero-orb-two"></div><div class="hero-glow" aria-hidden="true"></div>`;
   hero.querySelectorAll('[data-hero-nav]').forEach(b => b.addEventListener('click', () => goToSection(b.dataset.heroNav)));
   const addLead = hero.querySelector('[data-hero-addlead]');
   if (addLead) addLead.addEventListener('click', () => document.getElementById('addLeadBtn').click());
