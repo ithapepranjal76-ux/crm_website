@@ -1,0 +1,55 @@
+{% extends "sales_panel/base.html" %}
+{% block panel_content %}
+<div class="page-hero">
+  <div>
+    <h2>{{ page_title }}</h2>
+    <p class="muted">Your personal sales workspace — stay focused and close more deals.</p>
+  </div>
+  <button class="btn-primary" type="button" data-open-modal data-kind="{{ default_kind }}" data-title="Create {{ page_title }}" data-next="{% url 'sales_page' slug %}">
+    <i data-lucide="plus"></i> Create
+  </button>
+</div>
+
+<div class="kpi-row" style="margin-bottom:1rem">
+  <div class="kpi"><h4>Assigned</h4><div class="val">{{ items|length }}</div><div class="delta">Saved records</div></div>
+  <div class="kpi"><h4>In Progress</h4><div class="val">{{ items|length }}</div><div class="delta">Active now</div></div>
+  <div class="kpi"><h4>Won / Done</h4><div class="val">0</div><div class="delta">▲ track here</div></div>
+  <div class="kpi"><h4>Follow-ups Due</h4><div class="val">{{ items|length }}</div><div class="delta" style="color:#dc2626">Today</div></div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>{{ page_title }} List</h3>
+    <div class="list">
+      {% for item in items %}
+      <div class="list-item">
+        <div class="avatar-sm">{{ item.title|slice:":2"|upper }}</div>
+        <div class="meta"><b>{{ item.title }}</b><span>{{ item.detail|default:"No details" }}</span></div>
+        <span class="tag {% if item.priority == 'High' %}red{% elif item.priority == 'Low' %}green{% else %}orange{% endif %}">{{ item.priority }}</span>
+      </div>
+      {% empty %}
+      <div class="list-item"><div class="meta"><b>No records yet</b><span>Click Create to add your first item.</span></div></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h3>Smart Tips</h3>
+    <div class="list">
+      <div class="list-item"><div class="meta"><b>Prioritize high-score leads first</b><span>AI confidence above 80%</span></div></div>
+      <div class="list-item"><div class="meta"><b>Log every call outcome</b><span>Keeps pipeline accuracy high</span></div></div>
+      <div class="list-item"><div class="meta"><b>Book next step before ending call</b><span>Improves close rate</span></div></div>
+    </div>
+    <div class="card ai-card" style="margin-top:1rem">
+      <h3 style="color:white">AI Assist</h3>
+      <p>Want suggested talking points for your next follow-up?</p>
+      <button class="btn" type="button" data-info data-info-title="AI Script" data-info-body="<p>Hi, following up on our discussion. I can share a tailored proposal and schedule a quick 15-min call this week.</p>">Generate Script</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block panel_js %}
+<script>
+  document.body.dataset.defaultKind = "{{ default_kind }}";
+  document.body.dataset.modalTitle = "Create {{ page_title }}";
+</script>
+{% endblock %}

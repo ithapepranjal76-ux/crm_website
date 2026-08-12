@@ -1,0 +1,56 @@
+{% extends "admin_panel/base.html" %}
+{% block body_class %}panel-body panel-admin{% endblock %}
+{% block panel_content %}
+<div class="page-hero">
+  <div>
+    <h2>{{ page_title }}</h2>
+    <p class="muted">Professional {{ page_title|lower }} workspace for your CRM admin team.</p>
+  </div>
+  <button class="btn-primary" type="button" data-open-modal data-kind="{{ default_kind }}" data-title="Add {{ page_title }}" data-next="{% url 'admin_page' slug %}">
+    <i data-lucide="plus"></i> Add New
+  </button>
+</div>
+
+<div class="kpi-row" style="margin-bottom:1rem">
+  <div class="kpi"><h4>Total Records</h4><div class="val">{{ items|length }}</div><div class="delta">Live data</div></div>
+  <div class="kpi"><h4>Active Today</h4><div class="val">{{ items|length }}</div><div class="delta">▲ updated</div></div>
+  <div class="kpi"><h4>Pending Actions</h4><div class="val">{{ items|length }}</div><div class="delta" style="color:#d97706">Needs review</div></div>
+  <div class="kpi"><h4>Module</h4><div class="val" style="font-size:1rem">{{ page_title }}</div><div class="delta">On track</div></div>
+</div>
+
+<div class="card">
+  <h3>{{ page_title }} Directory</h3>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Name</th><th>Owner</th><th>Status</th><th>Updated</th><th>Priority</th></tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.title }}</td>
+          <td>{{ item.created_by.get_full_name|default:item.created_by.username|default:"—" }}</td>
+          <td><span class="tag blue">{{ item.status }}</span></td>
+          <td>{{ item.updated_at|timesince }} ago</td>
+          <td>
+            {% if item.priority == 'High' %}<span class="tag red">High</span>
+            {% elif item.priority == 'Low' %}<span class="tag green">Low</span>
+            {% else %}<span class="tag orange">Medium</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="muted">No records yet. Click <b>Add New</b> to create one.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block panel_js %}
+<script>
+  document.body.dataset.defaultKind = "{{ default_kind }}";
+  document.body.dataset.modalTitle = "Add {{ page_title }}";
+</script>
+{% endblock %}

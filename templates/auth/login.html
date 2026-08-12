@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Sign In — Nexa CRM{% endblock %}
+{% block body_class %}login-body{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/login.css' %}" />{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <section class="login-left">
+    <div class="brand-row">
+      <img src="{% static 'img/nexa-logo.png' %}" alt="Nexa CRM" />
+      <div>
+        <strong>NEXA CRM</strong>
+        <small>SMART. CONNECT. GROW.</small>
+      </div>
+    </div>
+
+    <h1>Manage Leads.<br/>Close Deals.<br/><span class="grad">Grow Business.</span></h1>
+    <p>Sign in to your workspace and keep every lead, call, and deal moving with clarity.</p>
+
+    <div class="feature-grid">
+      <article class="feature-card">
+        <img src="{% static 'img/icon-leads.png' %}" alt="Lead Management" />
+        <h3>Lead Management</h3>
+        <p>Track, assign and convert prospects efficiently.</p>
+      </article>
+      <article class="feature-card">
+        <img src="{% static 'img/icon-pipeline.png' %}" alt="Sales Pipeline" />
+        <h3>Sales Pipeline</h3>
+        <p>Visual stages from first contact to closed won.</p>
+      </article>
+      <article class="feature-card">
+        <img src="{% static 'img/icon-call.png' %}" alt="Call Integration" />
+        <h3>Call Integration</h3>
+        <p>Click to call and log outcomes instantly.</p>
+      </article>
+      <article class="feature-card">
+        <img src="{% static 'img/icon-analytics.png' %}" alt="Analytics" />
+        <h3>Analytics & Reports</h3>
+        <p>Revenue and performance insights in real time.</p>
+      </article>
+    </div>
+
+    <div class="security-bar">
+      <div class="left">
+        <img src="{% static 'img/icon-security.png' %}" alt="Security" />
+        <div>
+          <strong>Enterprise Grade Security</strong>
+          <span>Encrypted sessions · Role-based access</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="login-right">
+    <div class="theme-toggle" title="Theme">
+      <button type="button" aria-label="Light"><i data-lucide="sun"></i></button>
+      <button type="button" class="active" aria-label="Dark"><i data-lucide="moon"></i></button>
+    </div>
+    <div class="glow-blob"></div>
+
+    <div class="login-card">
+      <h2>Welcome Back!</h2>
+      <p class="sub">Sign in to continue to your account</p>
+
+      {% if current_user %}
+      <div class="error-box" style="background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);color:#bfdbfe">
+        Logged in as <b>{{ current_user.username }}</b> ({{ current_user.role }}).
+        Enter another account below to switch, or <a href="{% url 'logout' %}" style="color:#c084fc">Logout</a>.
+      </div>
+      {% endif %}
+
+      {% if error %}
+      <div class="error-box">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="{% url 'login' %}" id="loginForm">
+        {% csrf_token %}
+        <div class="field">
+          <label for="email">Email / Username</label>
+          <div class="input-wrap">
+            <i data-lucide="mail"></i>
+            <input id="email" name="email" type="text" placeholder="Enter username or email" required autocomplete="username" />
+            <i data-lucide="user"></i>
+          </div>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <i data-lucide="lock"></i>
+            <input id="password" name="password" type="password" placeholder="Enter your password" required autocomplete="current-password" />
+            <button type="button" id="togglePass" aria-label="Show password"><i data-lucide="eye"></i></button>
+          </div>
+        </div>
+
+        <div class="row-between">
+          <label class="remember"><input type="checkbox" name="remember" checked /> Remember me</label>
+          <a class="forgot" href="#">Forgot Password?</a>
+        </div>
+
+        <button class="btn-signin" type="submit">
+          Sign In <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="divider">quick demo login</div>
+      <div class="socials" style="grid-template-columns:1fr 1fr 1fr">
+        <button type="button" class="demo-login" data-user="admin" data-pass="admin123">Admin</button>
+        <button type="button" class="demo-login" data-user="ravi" data-pass="sales123">Sales</button>
+        <button type="button" class="demo-login" data-user="anjali" data-pass="employee123">Employee</button>
+      </div>
+
+      <p class="signup-note">Don't have an account? <a href="mailto:admin@nexacrm.com">Contact Administrator</a></p>
+      <div class="demo-hint">
+        Sales: <code>ravi</code> / <code>sales123</code><br/>
+        Employee: <code>anjali</code> / <code>employee123</code><br/>
+        Admin: <code>admin</code> / <code>admin123</code><br/>
+        (Email bhi chalega: ravi@nexacrm.com)
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer class="bottom-bar">
+  <div class="bottom-item"><div class="ico"><i data-lucide="phone"></i></div><div><strong>Click to Call</strong>Instant dial from CRM</div></div>
+  <div class="bottom-item"><div class="ico"><i data-lucide="bell-ring"></i></div><div><strong>Smart Follow-ups</strong>Never miss a lead</div></div>
+  <div class="bottom-item"><div class="ico"><i data-lucide="zap"></i></div><div><strong>Real-time Alerts</strong>Live team updates</div></div>
+  <div class="bottom-item"><div class="ico"><i data-lucide="users"></i></div><div><strong>Team Collaboration</strong>Work as one unit</div></div>
+</footer>
+{% endblock %}
+{% block extra_js %}
+<script>
+  const pass = document.getElementById('password');
+  const toggle = document.getElementById('togglePass');
+  toggle?.addEventListener('click', () => {
+    const show = pass.type === 'password';
+    pass.type = show ? 'text' : 'password';
+    toggle.innerHTML = show ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>';
+    lucide.createIcons();
+  });
+
+  document.querySelectorAll('.demo-login').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.getElementById('email').value = btn.dataset.user;
+      document.getElementById('password').value = btn.dataset.pass;
+      document.getElementById('loginForm').submit();
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }} — Nexa CRM Employee{% endblock %}
+{% block body_class %}panel-body panel-employee{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/panel.css' %}?v=10" />{% endblock %}
+{% block content %}
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <img src="{% static 'img/nexa-logo.png' %}" alt="Nexa" />
+      <div>
+        <strong>NEXA CRM</strong>
+        <small>Employee Panel</small>
+      </div>
+    </div>
+    <nav class="nav-list">
+      <a href="{% url 'employee_dashboard' %}" class="{% if active == 'dashboard' %}active{% endif %}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+      <a href="{% url 'employee_page' 'tasks' %}" class="{% if active == 'tasks' %}active{% endif %}"><i data-lucide="list-checks"></i> My Tasks <span class="badge">12</span></a>
+      <a href="{% url 'employee_page' 'activities' %}" class="{% if active == 'activities' %}active{% endif %}"><i data-lucide="activity"></i> My Activities</a>
+      <a href="{% url 'employee_page' 'calendar' %}" class="{% if active == 'calendar' %}active{% endif %}"><i data-lucide="calendar"></i> Calendar</a>
+      <a href="{% url 'employee_page' 'requests' %}" class="{% if active == 'requests' %}active{% endif %}"><i data-lucide="file-plus"></i> My Requests</a>
+      <a href="{% url 'employee_page' 'documents' %}" class="{% if active == 'documents' %}active{% endif %}"><i data-lucide="folder"></i> Documents</a>
+      <a href="{% url 'employee_page' 'knowledge' %}" class="{% if active == 'knowledge' %}active{% endif %}"><i data-lucide="book-open"></i> Knowledge Base</a>
+      <a href="{% url 'employee_page' 'directory' %}" class="{% if active == 'directory' %}active{% endif %}"><i data-lucide="contact-round"></i> Team Directory</a>
+      <a href="{% url 'employee_page' 'approvals' %}" class="{% if active == 'approvals' %}active{% endif %}"><i data-lucide="stamp"></i> Approvals <span class="badge">4</span></a>
+      <a href="{% url 'employee_page' 'reports' %}" class="{% if active == 'reports' %}active{% endif %}"><i data-lucide="bar-chart-2"></i> Reports</a>
+      <a href="{% url 'employee_page' 'announcements' %}" class="{% if active == 'announcements' %}active{% endif %}"><i data-lucide="megaphone"></i> Announcements</a>
+      <a href="{% url 'employee_page' 'notifications' %}" class="{% if active == 'notifications' %}active{% endif %}"><i data-lucide="bell"></i> Notifications <span class="badge">6</span></a>
+      <a href="{% url 'employee_page' 'settings' %}" class="{% if active == 'settings' %}active{% endif %}"><i data-lucide="settings"></i> Settings</a>
+    </nav>
+    <div class="side-card">
+      <h4><i data-lucide="sparkles" width="16"></i> AI Assistant</h4>
+      <p>Your smart helper for daily work and insights.</p>
+      <a class="btn-side" href="{% url 'employee_page' 'knowledge' %}">Ask Nexa AI →</a>
+    </div>
+    <a class="help-link" href="mailto:support@nexacrm.com"><i data-lucide="headphones"></i> Need Help? Contact Support</a>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-toggle" id="menuToggle" type="button"><i data-lucide="menu"></i></button>
+      <div>
+        <h1>{% if active == 'dashboard' %}Good Morning, {{ user_obj.first_name|default:"Anjali" }}! 👋{% else %}{{ page_title }}{% endif %}</h1>
+        <div class="sub">Here's what's happening in your workspace today</div>
+      </div>
+      <div class="search">
+        <i data-lucide="search" width="16"></i>
+        <input type="search" placeholder="Search anything..." />
+        <kbd>Ctrl + K</kbd>
+      </div>
+      <div class="top-actions">
+        <a class="icon-btn" href="{% url 'employee_page' 'notifications' %}"><i data-lucide="bell"></i><span class="dot">5</span></a>
+        <button class="icon-btn" type="button" data-open-modal data-kind="note" data-title="New Message" data-next="{% url 'employee_page' 'activities' %}"><i data-lucide="message-square"></i><span class="dot">3</span></button>
+        <div class="profile">
+          <div class="avatar" style="background:linear-gradient(135deg,#a78bfa,#ec4899)">{{ user_obj.first_name|default:"A"|slice:":1" }}{{ user_obj.last_name|default:"S"|slice:":1" }}</div>
+          <div>
+            <strong>{{ user_obj.get_full_name|default:user_obj.username }}</strong>
+            <span>{{ user_obj.designation|default:"Employee" }}</span>
+          </div>
+          <a class="icon-btn" href="{% url 'logout' %}" title="Logout"><i data-lucide="log-out"></i></a>
+        </div>
+      </div>
+    </header>
+    <div class="content">
+      {% if messages %}
+      <div class="flash-wrap">
+        {% for message in messages %}
+        <div class="flash {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block panel_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+<a class="fab-ai" href="{% url 'employee_page' 'knowledge' %}"><i data-lucide="bot"></i> Nexa AI Chat</a>
+{% include "partials/action_modal.html" %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/panel.js' %}?v=10"></script>
+{% block panel_js %}{% endblock %}
+{% endblock %}

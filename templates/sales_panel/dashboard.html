@@ -1,0 +1,120 @@
+{% extends "sales_panel/base.html" %}
+{% block panel_content %}
+<div class="welcome" style="margin-bottom:1rem">
+  <div class="welcome-left">
+    <div class="avatar" style="width:56px;height:56px;font-size:1.1rem">{{ user_obj.first_name|default:"R"|slice:":1" }}{{ user_obj.last_name|default:"K"|slice:":1" }}</div>
+    <div>
+      <h2>Welcome Back, {{ user_obj.get_full_name|default:"Ravi Kumar" }}! 👋</h2>
+      <p class="muted">Here's your sales performance snapshot for today.</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:.8rem;align-items:center">
+    <div class="muted" style="text-align:right"><div style="font-weight:800;color:#0f172a">10 Aug 2026</div><div>Sunday</div></div>
+    <div class="slogan">Sell Smart • Close More</div>
+  </div>
+</div>
+
+<div class="kpi-row" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:1rem">
+  <div class="kpi"><h4>Total Assigned Leads</h4><div class="val">128</div><div class="delta">+12% vs last month</div></div>
+  <div class="kpi"><h4>My Customers</h4><div class="val">56</div><div class="delta">+14%</div></div>
+  <div class="kpi"><h4>My Deals</h4><div class="val">18</div><div class="delta">+20%</div></div>
+  <div class="kpi"><h4>Monthly Sales</h4><div class="val">₹4,85,000</div><div class="delta">+18%</div></div>
+  <div class="kpi">
+    <h4>Target vs Achieved</h4>
+    <div class="val" style="font-size:1.1rem">₹6,00,000</div>
+    <div class="progress-bar" style="margin:.45rem 0"><i style="width:80.8%"></i></div>
+    <div class="delta">80.8% achieved</div>
+  </div>
+</div>
+
+<div class="three-col" style="margin-bottom:1rem">
+  <div class="card" style="grid-column: span 1.2">
+    <h3>Sales Performance <select style="border:1px solid #e2e8f0;border-radius:8px;padding:.25rem .5rem"><option>This Month</option></select></h3>
+    <div class="chart-box"><canvas id="salesPerf"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Lead Status</h3>
+    <div class="chart-box sm"><canvas id="leadStatusDonut"></canvas></div>
+  </div>
+  <div class="card ai-card">
+    <h3 style="color:white"><i data-lucide="bot"></i> AI Sales Assistant</h3>
+    <p>Hi {{ user_obj.first_name|default:"Ravi" }} — 5 leads look ready to convert. Top pick: ABC Technologies (92%).</p>
+    <div class="list" style="margin-bottom:.8rem">
+      <div class="list-item" style="border-color:rgba(255,255,255,.15)"><div class="meta"><b style="color:white">ABC Technologies</b><span style="color:rgba(255,255,255,.7)">92% convert chance</span></div></div>
+      <div class="list-item" style="border-color:rgba(255,255,255,.15)"><div class="meta"><b style="color:white">Nova Soft</b><span style="color:rgba(255,255,255,.7)">84% convert chance</span></div></div>
+    </div>
+    <button class="btn" type="button" data-info data-info-title="AI Follow-up Suggestions" data-info-body="<p>Suggested next steps:</p><ul><li>Call ABC Technologies today at 11 AM</li><li>Send revised quote to Nova Soft</li><li>Confirm demo with Orbit Media</li></ul>">Get Follow-up Suggestions</button>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <h3>Sales Pipeline</h3>
+  <div class="pipeline-chevron">
+    <div class="step" style="background:#3b82f6"><b>42</b>New</div>
+    <div class="step" style="background:#06b6d4"><b>28</b>Contacted</div>
+    <div class="step" style="background:#8b5cf6"><b>19</b>Qualified</div>
+    <div class="step" style="background:#f59e0b"><b>14</b>Proposal</div>
+    <div class="step" style="background:#ec4899"><b>9</b>Negotiation</div>
+    <div class="step" style="background:#10b981"><b>6</b>Won</div>
+  </div>
+</div>
+
+<div class="two-col" style="margin-bottom:1rem">
+  <div class="card">
+    <h3>Today's Follow-ups</h3>
+    <div class="list">
+      <div class="list-item"><div class="meta"><b>10:00 AM · Ravi Mehta</b><span>Discuss pricing proposal</span></div><span class="tag red">High</span></div>
+      <div class="list-item"><div class="meta"><b>12:30 PM · Sneha Jain</b><span>Demo follow-up call</span></div><span class="tag orange">Medium</span></div>
+      <div class="list-item"><div class="meta"><b>03:15 PM · Amit Joshi</b><span>Contract clarification</span></div><span class="tag red">High</span></div>
+      <div class="list-item"><div class="meta"><b>05:00 PM · Pooja Nair</b><span>Send revised quotation</span></div><span class="tag orange">Medium</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Hot Leads</h3>
+    <div class="list">
+      <div class="list-item"><div class="avatar-sm">AB</div><div class="meta"><b>ABC Technologies</b><span>Enterprise plan interest</span></div><span class="tag red">Hot · 92</span></div>
+      <div class="list-item"><div class="avatar-sm">NS</div><div class="meta"><b>Nova Soft</b><span>Requested demo replay</span></div><span class="tag orange">Warm · 84</span></div>
+      <div class="list-item"><div class="avatar-sm">OM</div><div class="meta"><b>Orbit Media</b><span>Budget confirmed</span></div><span class="tag red">Hot · 88</span></div>
+      <div class="list-item"><div class="avatar-sm">SK</div><div class="meta"><b>Skyline Homes</b><span>Waiting on approval</span></div><span class="tag orange">Warm · 76</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="three-col">
+  <div class="card">
+    <h3>Recent Activities</h3>
+    <div class="list">
+      <div class="list-item"><div class="ico" style="width:34px;height:34px;border-radius:10px;background:#dbeafe;color:#2563eb;display:grid;place-items:center"><i data-lucide="phone" width="16"></i></div><div class="meta"><b>Call with ABC Technologies</b><span>Today, 9:40 AM</span></div><span class="tag green">Completed</span></div>
+      <div class="list-item"><div class="ico" style="width:34px;height:34px;border-radius:10px;background:#ede9fe;color:#7c3aed;display:grid;place-items:center"><i data-lucide="mail" width="16"></i></div><div class="meta"><b>Proposal emailed to Nova Soft</b><span>Yesterday</span></div><span class="tag green">Completed</span></div>
+      <div class="list-item"><div class="ico" style="width:34px;height:34px;border-radius:10px;background:#ffedd5;color:#c2410c;display:grid;place-items:center"><i data-lucide="calendar" width="16"></i></div><div class="meta"><b>Meeting with Orbit Media</b><span>Tomorrow</span></div><span class="tag orange">Pending</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Calendar · August 2026</h3>
+    <div class="calendar-grid">
+      <div class="hd">Su</div><div class="hd">Mo</div><div class="hd">Tu</div><div class="hd">We</div><div class="hd">Th</div><div class="hd">Fr</div><div class="hd">Sa</div>
+      <div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day">1</div>
+      <div class="day">2</div><div class="day">3</div><div class="day">4</div><div class="day mark">5</div><div class="day">6</div><div class="day">7</div><div class="day">8</div>
+      <div class="day active">9</div><div class="day">10</div><div class="day mark">11</div><div class="day">12</div><div class="day">13</div><div class="day mark">14</div><div class="day">15</div>
+      <div class="day">16</div><div class="day">17</div><div class="day">18</div><div class="day">19</div><div class="day">20</div><div class="day">21</div><div class="day">22</div>
+      <div class="day">23</div><div class="day">24</div><div class="day">25</div><div class="day">26</div><div class="day">27</div><div class="day">28</div><div class="day">29</div>
+      <div class="day">30</div><div class="day">31</div>
+    </div>
+    <div class="muted" style="margin-top:.7rem">● Meetings · ● Follow-ups · ● Calls</div>
+  </div>
+  <div class="card">
+    <h3>Quick Actions</h3>
+    <div class="quick-actions" style="grid-template-columns:repeat(2,1fr)">
+      <button type="button" class="qa" data-open-modal data-kind="lead" data-title="Add Lead" data-next="{% url 'sales_page' 'leads' %}"><div class="ico" style="background:#3b82f6"><i data-lucide="user-plus"></i></div><span>Add Lead</span></button>
+      <button type="button" class="qa" data-open-modal data-kind="deal" data-title="Add Deal" data-next="{% url 'sales_page' 'deals' %}"><div class="ico" style="background:#8b5cf6"><i data-lucide="briefcase"></i></div><span>Add Deal</span></button>
+      <button type="button" class="qa" data-open-modal data-kind="task" data-title="Add Task" data-next="{% url 'sales_page' 'tasks' %}"><div class="ico" style="background:#f59e0b"><i data-lucide="list-todo"></i></div><span>Add Task</span></button>
+      <button type="button" class="qa" data-open-modal data-kind="call" data-title="Schedule Call" data-next="{% url 'sales_page' 'followups' %}"><div class="ico" style="background:#10b981"><i data-lucide="phone"></i></div><span>Schedule Call</span></button>
+      <button type="button" class="qa" data-open-modal data-kind="email" data-title="Send Email" data-next="{% url 'sales_page' 'activities' %}"><div class="ico" style="background:#06b6d4"><i data-lucide="mail"></i></div><span>Send Email</span></button>
+      <button type="button" class="qa" data-open-modal data-kind="note" data-title="Add Note" data-next="{% url 'sales_page' 'activities' %}"><div class="ico" style="background:#ec4899"><i data-lucide="sticky-note"></i></div><span>Add Note</span></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block panel_js %}
+<script>NexaCharts.salesDashboard();</script>
+{% endblock %}

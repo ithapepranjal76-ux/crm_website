@@ -1,0 +1,103 @@
+{% extends "employee_panel/base.html" %}
+{% block panel_content %}
+<div class="kpi-row" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:1rem">
+  <div class="kpi"><div class="kpi-top"><div><h4>Tasks Assigned</h4><div class="val">24</div><div class="muted">8 Pending</div></div><div class="ico" style="background:#7c3aed"><i data-lucide="list-checks"></i></div></div></div>
+  <div class="kpi"><div class="kpi-top"><div><h4>Tasks Completed</h4><div class="val">16</div><div class="muted">This Month</div></div><div class="ico" style="background:#10b981"><i data-lucide="check-circle-2"></i></div></div></div>
+  <div class="kpi"><div class="kpi-top"><div><h4>My Activities</h4><div class="val">28</div><div class="muted">This Month</div></div><div class="ico" style="background:#3b82f6"><i data-lucide="activity"></i></div></div></div>
+  <div class="kpi"><div class="kpi-top"><div><h4>Pending Approvals</h4><div class="val">5</div><div class="muted">Needs Action</div></div><div class="ico" style="background:#f59e0b"><i data-lucide="stamp"></i></div></div></div>
+  <div class="kpi"><div class="kpi-top"><div><h4>Meetings Today</h4><div class="val">2</div><div class="muted">Upcoming</div></div><div class="ico" style="background:#ec4899"><i data-lucide="calendar"></i></div></div></div>
+</div>
+
+<div class="grid" style="grid-template-columns:1.2fr 1fr .9fr .85fr;margin-bottom:1rem">
+  <div class="card">
+    <h3>My Tasks</h3>
+    <div class="list">
+      <div class="list-item"><input type="checkbox" /><div class="meta"><b>Prepare client onboarding kit</b><span>Due 11 Aug</span></div><span class="tag red">High</span></div>
+      <div class="list-item"><input type="checkbox" checked /><div class="meta"><b>Update weekly status report</b><span>Due today</span></div><span class="tag orange">Medium</span></div>
+      <div class="list-item"><input type="checkbox" /><div class="meta"><b>Review support tickets batch</b><span>Due 12 Aug</span></div><span class="tag green">Low</span></div>
+      <div class="list-item"><input type="checkbox" /><div class="meta"><b>Coordinate with sales on demo</b><span>Due 13 Aug</span></div><span class="tag red">High</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>My Activities</h3>
+    <div class="list">
+      <div class="list-item"><div class="avatar-sm" style="background:#8b5cf6"><i data-lucide="users" width="14"></i></div><div class="meta"><b>Meeting with HR</b><span>10:00 AM</span></div><span class="tag purple">Meeting</span></div>
+      <div class="list-item"><div class="avatar-sm" style="background:#3b82f6"><i data-lucide="check-square" width="14"></i></div><div class="meta"><b>Task review sync</b><span>12:30 PM</span></div><span class="tag blue">Task</span></div>
+      <div class="list-item"><div class="avatar-sm" style="background:#10b981"><i data-lucide="phone" width="14"></i></div><div class="meta"><b>Client clarification call</b><span>03:00 PM</span></div><span class="tag green">Call</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Task Progress</h3>
+    <div class="chart-box sm"><canvas id="taskProgress"></canvas></div>
+    <div class="muted" style="margin:.5rem 0 .3rem">Overall Progress · 67%</div>
+    <div class="progress-bar"><i style="width:67%;background:linear-gradient(90deg,#7c3aed,#6366f1)"></i></div>
+  </div>
+  <div class="card">
+    <h3>Leave Balance</h3>
+    <div class="leave-row"><div class="top"><span>Casual Leave</span><b>6/12</b></div><div class="progress-bar"><i style="width:50%;background:#7c3aed"></i></div></div>
+    <div class="leave-row"><div class="top"><span>Sick Leave</span><b>2/8</b></div><div class="progress-bar"><i style="width:25%;background:#3b82f6"></i></div></div>
+    <div class="leave-row"><div class="top"><span>Earned Leave</span><b>4/15</b></div><div class="progress-bar"><i style="width:27%;background:#f59e0b"></i></div></div>
+    <div class="leave-row"><div class="top"><span>Comp Off</span><b>1/5</b></div><div class="progress-bar"><i style="width:20%;background:#10b981"></i></div></div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr 1.1fr .85fr;margin-bottom:1rem">
+  <div class="card">
+    <h3>Calendar · Aug 2026</h3>
+    <div class="calendar-grid">
+      <div class="hd">S</div><div class="hd">M</div><div class="hd">T</div><div class="hd">W</div><div class="hd">T</div><div class="hd">F</div><div class="hd">S</div>
+      <div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day">1</div>
+      <div class="day">2</div><div class="day">3</div><div class="day mark">4</div><div class="day">5</div><div class="day">6</div><div class="day">7</div><div class="day">8</div>
+      <div class="day active">9</div><div class="day">10</div><div class="day">11</div><div class="day mark">12</div><div class="day">13</div><div class="day">14</div><div class="day">15</div>
+    </div>
+    <div class="list" style="margin-top:.8rem">
+      <div class="list-item"><div class="meta"><b>10:00 AM · Team Standup</b></div></div>
+      <div class="list-item"><div class="meta"><b>12:00 PM · Lunch Break</b></div></div>
+      <div class="list-item"><div class="meta"><b>03:00 PM · Support Sync</b></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Company Announcements</h3>
+    <div class="list">
+      <div class="list-item"><div class="avatar-sm" style="background:#7c3aed"><i data-lucide="megaphone" width="14"></i></div><div class="meta"><b>New HR Policy Update</b><span>2 hours ago</span></div></div>
+      <div class="list-item"><div class="avatar-sm" style="background:#3b82f6"><i data-lucide="party-popper" width="14"></i></div><div class="meta"><b>Team outing next Friday</b><span>Yesterday</span></div></div>
+      <div class="list-item"><div class="avatar-sm" style="background:#10b981"><i data-lucide="trophy" width="14"></i></div><div class="meta"><b>Q2 awards announced</b><span>2 days ago</span></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>My Performance</h3>
+    <div class="chart-box sm"><canvas id="empPerf"></canvas></div>
+    <div class="kpi-row" style="grid-template-columns:1fr 1fr;margin-top:.7rem;gap:.55rem">
+      <div class="kpi" style="padding:.7rem"><h4>Tasks Done</h4><div class="val" style="font-size:1.1rem">16</div><div class="delta">+20%</div></div>
+      <div class="kpi" style="padding:.7rem"><h4>On Time</h4><div class="val" style="font-size:1.1rem">92%</div><div class="delta">+18%</div></div>
+      <div class="kpi" style="padding:.7rem"><h4>Efficiency</h4><div class="val" style="font-size:1.1rem">87%</div><div class="delta">+12%</div></div>
+      <div class="kpi" style="padding:.7rem"><h4>Quality</h4><div class="val" style="font-size:1.1rem">4.6/5</div><div class="delta">+8%</div></div>
+    </div>
+  </div>
+  <div class="grid" style="gap:1rem">
+    <div class="card">
+      <h3>Today's Birthdays</h3>
+      <div class="list">
+        <div class="list-item"><div class="avatar-sm">VK</div><div class="meta"><b>Vikram Rao</b><span>Sales</span></div><i data-lucide="cake" style="color:#7c3aed"></i></div>
+        <div class="list-item"><div class="avatar-sm">PN</div><div class="meta"><b>Pooja Nair</b><span>Support</span></div><i data-lucide="cake" style="color:#ec4899"></i></div>
+      </div>
+    </div>
+    <div class="card sticky-note">
+      <h3>Quick Notes 📌</h3>
+      <p style="font-size:.9rem;line-height:1.5">Submit expense report before Friday. Confirm leave with manager for 18 Aug.</p>
+    </div>
+  </div>
+</div>
+
+<div class="quick-links">
+  <button type="button" class="ql" data-open-modal data-kind="request" data-title="Request Leave" data-next="{% url 'employee_page' 'requests' %}"><div class="circle" style="background:#7c3aed"><i data-lucide="palm-tree"></i></div>Request Leave</button>
+  <button type="button" class="ql" data-open-modal data-kind="request" data-title="Submit Expense" data-next="{% url 'employee_page' 'requests' %}"><div class="circle" style="background:#3b82f6"><i data-lucide="receipt"></i></div>Submit Expense</button>
+  <a class="ql" href="mailto:it@nexacrm.com"><div class="circle" style="background:#10b981"><i data-lucide="headset"></i></div>IT Support</a>
+  <a class="ql" href="{% url 'employee_page' 'documents' %}"><div class="circle" style="background:#f59e0b"><i data-lucide="file-text"></i></div>Payslip</a>
+  <a class="ql" href="{% url 'employee_page' 'knowledge' %}"><div class="circle" style="background:#ec4899"><i data-lucide="book"></i></div>Policies</a>
+  <button type="button" class="ql" data-open-modal data-kind="note" data-title="Submit Feedback" data-next="{% url 'employee_page' 'requests' %}"><div class="circle" style="background:#06b6d4"><i data-lucide="message-circle"></i></div>Feedback</button>
+</div>
+{% endblock %}
+{% block panel_js %}
+<script>NexaCharts.employeeDashboard();</script>
+{% endblock %}

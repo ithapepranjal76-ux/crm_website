@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }} — Nexa CRM Admin{% endblock %}
+{% block body_class %}panel-body panel-admin{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/panel.css' %}?v=10" />{% endblock %}
+{% block content %}
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <img src="{% static 'img/nexa-logo.png' %}" alt="Nexa" />
+      <div>
+        <strong>Nexa CRM</strong>
+        <small>Admin Console</small>
+      </div>
+    </div>
+    <nav class="nav-list">
+      <a href="{% url 'admin_dashboard' %}" class="{% if active == 'dashboard' %}active{% endif %}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+      <a href="{% url 'admin_page' 'leads' %}" class="{% if active == 'leads' %}active{% endif %}"><i data-lucide="users"></i> Leads <span class="badge">28</span></a>
+      <a href="{% url 'admin_page' 'contacts' %}" class="{% if active == 'contacts' %}active{% endif %}"><i data-lucide="contact"></i> Contacts</a>
+      <a href="{% url 'admin_page' 'companies' %}" class="{% if active == 'companies' %}active{% endif %}"><i data-lucide="building-2"></i> Companies</a>
+      <a href="{% url 'admin_page' 'deals' %}" class="{% if active == 'deals' %}active{% endif %}"><i data-lucide="handshake"></i> Deals</a>
+      <a href="{% url 'admin_page' 'pipeline' %}" class="{% if active == 'pipeline' %}active{% endif %}"><i data-lucide="git-branch"></i> Pipeline</a>
+      <a href="{% url 'admin_page' 'tasks' %}" class="{% if active == 'tasks' %}active{% endif %}"><i data-lucide="check-square"></i> Tasks</a>
+      <a href="{% url 'admin_page' 'appointments' %}" class="{% if active == 'appointments' %}active{% endif %}"><i data-lucide="calendar"></i> Appointments</a>
+      <a href="{% url 'admin_page' 'campaigns' %}" class="{% if active == 'campaigns' %}active{% endif %}"><i data-lucide="megaphone"></i> Campaigns</a>
+      <a href="{% url 'admin_page' 'calls' %}" class="{% if active == 'calls' %}active{% endif %}"><i data-lucide="phone-call"></i> Calls <span class="badge green">New</span></a>
+      <a href="{% url 'admin_page' 'reports' %}" class="{% if active == 'reports' %}active{% endif %}"><i data-lucide="bar-chart-3"></i> Reports</a>
+      <a href="{% url 'admin_page' 'ai' %}" class="{% if active == 'ai' %}active{% endif %}"><i data-lucide="bot"></i> AI Assistant <span class="badge purple">AI</span></a>
+      <a href="{% url 'admin_page' 'users' %}" class="{% if active == 'users' %}active{% endif %}"><i data-lucide="shield"></i> Users & Roles</a>
+      <a href="{% url 'admin_page' 'teams' %}" class="{% if active == 'teams' %}active{% endif %}"><i data-lucide="users-round"></i> Teams</a>
+      <a href="{% url 'admin_page' 'settings' %}" class="{% if active == 'settings' %}active{% endif %}"><i data-lucide="settings"></i> Settings</a>
+      <a href="{% url 'admin_page' 'integrations' %}" class="{% if active == 'integrations' %}active{% endif %}"><i data-lucide="puzzle"></i> Integrations</a>
+      <a href="{% url 'admin_page' 'audit' %}" class="{% if active == 'audit' %}active{% endif %}"><i data-lucide="scroll-text"></i> Audit Logs</a>
+    </nav>
+    <div class="side-card">
+      <h4>Need Help?</h4>
+      <p>Our support team is ready for your CRM setup questions.</p>
+      <a class="btn-side" href="mailto:support@nexacrm.com">Contact Support</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-toggle" id="menuToggle" type="button"><i data-lucide="menu"></i></button>
+      <div>
+        <h1>{{ page_title }} <i data-lucide="badge-check" style="color:#3b82f6;width:18px;height:18px"></i></h1>
+        <div class="sub">Manage · Monitor · Scale</div>
+      </div>
+      <div class="search">
+        <i data-lucide="search" width="16"></i>
+        <input type="search" placeholder="Search leads, contacts, deals..." />
+      </div>
+      <div class="top-actions">
+        <a class="call-btn" href="{% url 'admin_page' 'calls' %}?new=1"><i data-lucide="phone" width="14"></i> Call</a>
+        <button class="icon-btn" type="button" style="color:#16a34a" data-open-modal data-kind="email" data-title="Send WhatsApp / Message" data-next="{% url 'admin_page' 'campaigns' %}"><i data-lucide="message-circle"></i></button>
+        <button class="icon-btn" type="button" data-info data-info-title="Notifications" data-info-body="<ul><li>8 new lead alerts</li><li>3 deals need review</li><li>2 overdue follow-ups</li></ul>"><i data-lucide="bell"></i><span class="dot">8</span></button>
+        <a class="icon-btn" href="{% url 'admin_page' 'campaigns' %}"><i data-lucide="mail"></i><span class="dot">12</span></a>
+        <a class="icon-btn" href="{% url 'admin_page' 'appointments' %}"><i data-lucide="calendar"></i></a>
+        <div class="profile">
+          <div class="avatar">{{ user_obj.first_name|default:"A"|slice:":1" }}{{ user_obj.last_name|default:"U"|slice:":1" }}</div>
+          <div>
+            <strong>{{ user_obj.get_full_name|default:user_obj.username }}</strong>
+            <span>{{ user_obj.designation|default:"Super Admin" }}</span>
+          </div>
+          <a class="icon-btn" href="{% url 'logout' %}" title="Logout"><i data-lucide="log-out"></i></a>
+        </div>
+      </div>
+    </header>
+    <div class="content">
+      {% if messages %}
+      <div class="flash-wrap">
+        {% for message in messages %}
+        <div class="flash {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block panel_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% include "partials/action_modal.html" %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/panel.js' %}?v=10"></script>
+{% block panel_js %}{% endblock %}
+{% endblock %}

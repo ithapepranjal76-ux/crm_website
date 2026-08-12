@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Nexa CRM — Smart Lead Management{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/landing.css' %}" />{% endblock %}
+{% block content %}
+<header class="hero">
+  <div class="container hero-inner">
+    <nav class="nav">
+      <a class="brand" href="{% url 'landing' %}">
+        <img src="{% static 'img/nexa-logo.png' %}" alt="Nexa CRM" />
+        <div>
+          <strong>NEXA CRM</strong>
+          <small>SMART. CONNECT. GROW.</small>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#roles">Panels</a>
+        <a href="{% url 'login' %}">Sign In</a>
+        <a class="btn btn-primary" href="{% url 'login' %}">Launch CRM</a>
+      </div>
+    </nav>
+
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow"><span class="pulse"></span> Built for modern sales teams</div>
+        <h1>Close deals faster with <span>Nexa CRM</span></h1>
+        <p>
+          One workspace for leads, follow-ups, pipelines, calls, and team performance —
+          designed for Admin, Sales, and Employee roles.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="{% url 'login' %}">Get Started <i data-lucide="arrow-right"></i></a>
+          <a class="btn btn-ghost" href="#features">Explore Features</a>
+        </div>
+        <div class="hero-stats">
+          <div><strong>2.4k+</strong><span>Leads tracked</span></div>
+          <div><strong>98%</strong><span>Follow-up clarity</span></div>
+          <div><strong>3 Roles</strong><span>Admin · Sales · Staff</span></div>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <h3>Live pipeline pulse</h3>
+        <div class="mini-row"><div><b>New Leads</b><br/><small style="opacity:.7">Today</small></div><span>+42</span></div>
+        <div class="mini-row"><div><b>Qualified</b><br/><small style="opacity:.7">This week</small></div><span>+28</span></div>
+        <div class="mini-row"><div><b>Deals Won</b><br/><small style="opacity:.7">This month</small></div><span>₹38.7L</span></div>
+        <div class="mini-row"><div><b>Team Online</b><br/><small style="opacity:.7">Sales floor</small></div><div style="display:flex;align-items:center;gap:.4rem"><span class="pulse"></span><span>12 active</span></div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head">
+      <h2>Everything your CRM team needs — without clutter</h2>
+      <p>From first call to closed deal, Nexa keeps every action visible, assignable, and measurable.</p>
+    </div>
+    <div class="features">
+      <article class="feature">
+        <div class="ico"><i data-lucide="users"></i></div>
+        <h3>Lead Management</h3>
+        <p>Capture, score, and nurture leads with clear ownership and next-action reminders.</p>
+      </article>
+      <article class="feature">
+        <div class="ico"><i data-lucide="git-branch"></i></div>
+        <h3>Sales Pipeline</h3>
+        <p>Visual stages from New to Won so managers see bottlenecks instantly.</p>
+      </article>
+      <article class="feature">
+        <div class="ico"><i data-lucide="phone-call"></i></div>
+        <h3>Click to Call</h3>
+        <p>Start calls from the dashboard and log outcomes without leaving the workflow.</p>
+      </article>
+      <article class="feature">
+        <div class="ico"><i data-lucide="chart-column"></i></div>
+        <h3>Analytics & Reports</h3>
+        <p>Revenue, conversion, and team performance views built for daily decisions.</p>
+      </article>
+      <article class="feature">
+        <div class="ico"><i data-lucide="bot"></i></div>
+        <h3>AI Assistant</h3>
+        <p>Follow-up suggestions and hot-lead signals that keep your pipeline moving.</p>
+      </article>
+      <article class="feature">
+        <div class="ico"><i data-lucide="shield-check"></i></div>
+        <h3>Role-based Access</h3>
+        <p>Separate Admin, Sales, and Employee panels with the right tools for each role.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="roles" id="roles">
+  <div class="container">
+    <div class="section-head">
+      <h2>Three professional panels. One CRM language.</h2>
+      <p>Each role gets a modern workspace tailored to real daily work.</p>
+    </div>
+    <div class="role-grid">
+      <article class="role-card">
+        <span class="badge-soft">Admin</span>
+        <h3>Command Center</h3>
+        <p>Full control over leads, teams, campaigns, integrations, and audit logs.</p>
+        <ul>
+          <li><i data-lucide="check" width="16"></i> Users & roles</li>
+          <li><i data-lucide="check" width="16"></i> Revenue & pipeline reports</li>
+          <li><i data-lucide="check" width="16"></i> AI insights & audit trail</li>
+        </ul>
+      </article>
+      <article class="role-card">
+        <span class="badge-soft">Sales</span>
+        <h3>Deal Floor</h3>
+        <p>Personal targets, hot leads, follow-ups, and call activity in one place.</p>
+        <ul>
+          <li><i data-lucide="check" width="16"></i> My leads & deals</li>
+          <li><i data-lucide="check" width="16"></i> Follow-up calendar</li>
+          <li><i data-lucide="check" width="16"></i> Target progress</li>
+        </ul>
+      </article>
+      <article class="role-card">
+        <span class="badge-soft">Employee</span>
+        <h3>Work Hub</h3>
+        <p>Tasks, approvals, announcements, leave balance, and team directory.</p>
+        <ul>
+          <li><i data-lucide="check" width="16"></i> My tasks & activities</li>
+          <li><i data-lucide="check" width="16"></i> Requests & approvals</li>
+          <li><i data-lucide="check" width="16"></i> Knowledge base</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <div class="cta-box">
+      <div>
+        <h2>Ready to run your CRM the modern way?</h2>
+        <p>Sign in to your role-based workspace and start managing leads, tasks, and revenue today.</p>
+      </div>
+      <a class="btn btn-primary" href="{% url 'login' %}">Open Login <i data-lucide="log-in"></i></a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>© 2026 Nexa CRM. Built with Django.</span>
+    <span>Admin · Sales · Employee panels</span>
+  </div>
+</footer>
+{% endblock %}

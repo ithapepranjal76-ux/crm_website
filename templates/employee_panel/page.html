@@ -1,0 +1,57 @@
+{% extends "employee_panel/base.html" %}
+{% block panel_content %}
+<div class="page-hero">
+  <div>
+    <h2>{{ page_title }}</h2>
+    <p class="muted">Clean, modern workspace for your daily employee operations.</p>
+  </div>
+  <button class="btn-primary" type="button" data-open-modal data-kind="{{ default_kind }}" data-title="New {{ page_title }}" data-next="{% url 'employee_page' slug %}">
+    <i data-lucide="plus"></i> New Request
+  </button>
+</div>
+
+<div class="kpi-row" style="margin-bottom:1rem">
+  <div class="kpi"><h4>Open Items</h4><div class="val">{{ items|length }}</div><div class="muted">Across this module</div></div>
+  <div class="kpi"><h4>Completed</h4><div class="val">0</div><div class="delta">This month</div></div>
+  <div class="kpi"><h4>Awaiting You</h4><div class="val">{{ items|length }}</div><div class="delta" style="color:#d97706">Action needed</div></div>
+  <div class="kpi"><h4>Team Updates</h4><div class="val">{{ items|length }}</div><div class="muted">Unread</div></div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>{{ page_title }} Feed</h3>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Item</th><th>Owner</th><th>Status</th><th>Due</th></tr></thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.title }}</td>
+            <td>{{ item.created_by.get_full_name|default:item.created_by.username|default:"You" }}</td>
+            <td><span class="tag orange">{{ item.status }}</span></td>
+            <td>{{ item.created_at|date:"d M" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="muted">No items yet. Click New Request to add one.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Helpful Shortcuts</h3>
+    <div class="quick-actions" style="grid-template-columns:repeat(2,1fr)">
+      <button type="button" class="qa" data-open-modal data-kind="{{ default_kind }}" data-title="Upload / Add File" data-next="{% url 'employee_page' slug %}"><div class="ico" style="background:#7c3aed"><i data-lucide="upload"></i></div><span>Upload File</span></button>
+      <button type="button" class="qa" data-open-modal data-kind="request" data-title="Submit Request" data-next="{% url 'employee_page' 'requests' %}"><div class="ico" style="background:#3b82f6"><i data-lucide="send"></i></div><span>Submit</span></button>
+      <button type="button" class="qa" data-info data-info-title="Share" data-info-body="<p>Link copied for your team. You can also share from Documents.</p>"><div class="ico" style="background:#10b981"><i data-lucide="share-2"></i></div><span>Share</span></button>
+      <button type="button" class="qa" data-info data-info-title="Saved" data-info-body="<p>Item saved to your workspace bookmarks.</p>"><div class="ico" style="background:#f59e0b"><i data-lucide="bookmark"></i></div><span>Save</span></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block panel_js %}
+<script>
+  document.body.dataset.defaultKind = "{{ default_kind }}";
+  document.body.dataset.modalTitle = "New {{ page_title }}";
+</script>
+{% endblock %}

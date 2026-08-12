@@ -1,0 +1,59 @@
+{% load static %}
+<div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+
+<div id="actionModal" class="modal-backdrop" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add New</h3>
+      <button type="button" class="icon-btn" id="modalClose" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <form method="post" action="{% url 'create_item' %}" id="actionForm">
+      {% csrf_token %}
+      <input type="hidden" name="kind" id="modalKind" value="lead" />
+      <input type="hidden" name="next" id="modalNext" value="" />
+      <div class="field">
+        <label for="modalTitleInput">Name / Title</label>
+        <input id="modalTitleInput" name="title" type="text" required placeholder="Enter name or title" />
+      </div>
+      <div class="field">
+        <label for="modalDetail">Details / Notes</label>
+        <textarea id="modalDetail" name="detail" rows="3" placeholder="Optional details"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="modalPhone">Phone</label>
+          <input id="modalPhone" name="phone" type="text" placeholder="Optional" />
+        </div>
+        <div class="field">
+          <label for="modalEmail">Email</label>
+          <input id="modalEmail" name="email" type="email" placeholder="Optional" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="modalPriority">Priority</label>
+        <select id="modalPriority" name="priority">
+          <option>High</option>
+          <option selected>Medium</option>
+          <option>Low</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost-dark" id="modalCancel">Cancel</button>
+        <button type="submit" class="btn-primary"><i data-lucide="check"></i> Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="infoModal" class="modal-backdrop" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h3 id="infoTitle">Info</h3>
+      <button type="button" class="icon-btn" data-close-info aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div id="infoBody" class="info-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-primary" data-close-info>OK</button>
+    </div>
+  </div>
+</div>
